@@ -8,6 +8,8 @@ close.mmap <- function(con, ...) {
   munmap(con)
 }
 
+# creat flags using upper case symbols/strings
+# mmapFlags(PROT_READ,PROT_WRITE) OR mmapFlags(PROT_READ | PROT_WRITE)
 mmapFlags <- function(...) {
   if(nargs()==1) {
     flags <- gsub(" ","",unlist(strsplit(as.character(match.call(call=sys.call())[-1]),"\\|")))
@@ -43,6 +45,9 @@ msync <- function(x) {
 
 mprotect <- function(x, i, prot) {
   # i indicates the start and length of protection
+
+  # TODO: add ability to protect multiple pages in a
+  # range
   .Call("mmap_mprotect", x, i, prot)
 }
 
@@ -58,10 +63,11 @@ is.mmap <- function(x) {
 }
 
 `[<-.mmap` <- function(x, i, ..., sync=TRUE, value) {
+  # add type checking/coercing at the C-level
   if(!x[[2]]) stop('no data to extract')
   if(missing(i))
     i <- 1:length(x)
-  if(i > length(x) || i < 0 || length(i) != length(value)) stop()
+  if(i > length(x) || i < 0 || length(i) != length(value)) stop("improper 'i' range")
   .Call("mmap_replace", i, value, x) 
   if(sync)
     msync(x)
