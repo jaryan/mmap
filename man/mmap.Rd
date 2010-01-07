@@ -28,7 +28,7 @@ Set via bitwise OR with \code{mmapFlags} to one or more of
 \sQuote{PROT_READ}: Data can be read,
 \sQuote{PROT_WRITE}: Data can be written,
 \sQuote{PROT_EXEC}: Data can be executed,
-\sQuote{PROT_READ}: Data cannot be accessed.
+\sQuote{PROT_NONE}: Data cannot be accessed.
 Not all will apply within the context of R objects.
 }
   \item{flags}{
