@@ -1,0 +1,10 @@
+Package: mmap
+Type: Package
+Title: Map Pages of Memory
+Version: 0.5-0
+Date: 2010-01-04
+Author: Jeffrey A. Ryan
+LazyLoad: yes
+Maintainer: Jeffrey A. Ryan <jeff.a.ryan@gmail.com>
+Description: R interface to POSIX mmap
+License: GPL-3

@@ -1,0 +1,19 @@
+useDynLib(mmap)
+
+# user functions
+export(
+       mmap,
+       munmap,
+       msync,
+       mprotect,
+       
+       mmapFlags,
+
+       is.mmap
+      )
+
+# S3 methods
+S3method('[',mmap)
+S3method('[<-',mmap)
+S3method(str,mmap)
+S3method(print,mmap)
