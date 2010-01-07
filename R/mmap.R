@@ -1,3 +1,4 @@
+
 # Basic S3 methods
 str.mmap <- function(object, ...) { print(unclass(x)) }
 summary.mmap <- function() {}
@@ -21,11 +22,13 @@ mmapFlags <- function(...) {
 }
 
 # S3 constructor
-mmap <- function(file, mode=integer(), prot, flags, ...) {
+mmap <- function(file, mode=integer(), classFUN=NULL, prot, flags, ...) {
     if(missing(file))
       stop("'file' must be specified")
     mmap_obj <- .Call("mmap_mmap", mode, file, 3L, 1L)
-    names(mmap_obj) <- c("data","bytes","filedesc","storage.mode","pagesize")
+    if(is.null(classFUN)) classFUN <- function(x) x
+    mmap_obj[[6]] <- classFUN
+    names(mmap_obj) <- c("data","bytes","filedesc","storage.mode","pagesize","classFUN")
     class(mmap_obj) <- "mmap"
     return(mmap_obj)
 }
@@ -59,7 +62,9 @@ is.mmap <- function(x) {
   if(!x[[2]]) stop('no data to extract')
   if(missing(i))
     i <- 1:length(x)
-  .Call("mmap_extract", i, x)
+  if(is.null(x[[6]])) {
+    .Call("mmap_extract", i, x)
+  } else as.function(x[[6]])(.Call("mmap_extract", i, x))
 }
 
 `[<-.mmap` <- function(x, i, ..., sync=TRUE, value) {

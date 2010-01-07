@@ -10,7 +10,7 @@ Map And Unmap Pages of Memory
 Wrapper to POSIX compliant \sQuote{mmap} system calls.
 }
 \usage{
-mmap(file, mode = integer(), prot, flags, ...)
+mmap(file, mode = integer(), classFUN=NULL, prot, flags, ...)
 munmap(x)
 
 is.mmap(x)
@@ -21,6 +21,11 @@ name of file holding data to be mapped into memory
 }
   \item{mode}{
 mode of data as returned by \R \code{storage.mode}
+}
+  \item{classFUN}{
+A function to convert the raw/integer/double values
+returned by subsetting into a complex R class. If no
+change is needed, set to NULL (default).
 }
   \item{prot}{
 access permission to data being mapped.
@@ -64,6 +69,7 @@ the fields
 \sQuote{filedesc} (integer of file descriptor),
 \sQuote{storage.mode} (\R type of data),
 \sQuote{pagesize} (OS pagesize),
+\sQuote{classFUN} (conversion function for extraction),
 }
 \references{
 mmap: \url{http://www.opengroup.org/onlinepubs/000095399/functions/mmap.html}
@@ -80,15 +86,28 @@ This is currently only functional on POSIX compliant systems.
 }
 \examples{
 \dontrun{
+
 #create a binary file
-writeBin(1:100L, "test.bin")
-ints <- mmap("test.bin")
+tmp <- tempfile()
+writeBin(1:100L, tmp)
+
+# map into memory (default mode=integer())
+ints <- mmap(tmp, mode=integer()) 
 ints[1]
 ints[]
 munmap(ints)
+
+# store Dates as 'int' on disk
+DATE <- mmap(tmp,classFUN=function(x) structure(x,class="Date"))
+DATE[]
+munmap(DATE)
+
+# store 2 decimal numeric as 'int' on disk
+num <- mmap(tmp,classFUN=function(x) x/100)
+num[]
+munmap(num)
+
+unlink(tmp)
 }
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
+\keyword{ utilities }
