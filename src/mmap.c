@@ -8,6 +8,42 @@
 #include <sys/mman.h>
 #include "mmap.h"
 
+/*
+The "mmap" package for R is designed to provide a
+low level interface to the POSIX mmap C function
+call.  Additional work has been done to make the
+R interface friendly enough to the R user, but at
+the same time transparent enough to allow for
+the underlying system documentation to be used
+to manage the memory map functionality.
+
+This package implements all mmap-related calls:
+
+  mmap
+  munmap
+  msync
+  mprotect
+
+The conversion mechnisms to deal with translating
+raw bytes as returned by mmap into R level SEXP are
+abstracted from the user but handled in the C code.
+At present he may read data as R types: "raw", 
+"integer", and "double".
+
+This library does not support endianess conversion
+yet, or all of the arguments to the underlying
+system calls. The latter is due to the fact that
+not all are mappable in a usable sense into the
+R language, as well as the lack of need for this
+level of control at the current package version.
+
+Future work will entail support for more on-disk
+types converted into R SEXP upon extraction, as well
+as the addition of a smart finalizer.
+
+Comments, criticisms, and concerns should be directed
+to the maintainer of the package.
+*/
 SEXP rawToIntVector2 (SEXP raw_);
 SEXP rawToDoubleVector (SEXP raw_);
 int compareto (int *cmp, int *to);
@@ -50,7 +86,7 @@ SEXP mmap_mkFlags (SEXP _flags) {
     if(strcmp(cur_string,"MAP_FIXED")==0) {
       flags_bit = flags_bit | MAP_FIXED; continue;
     } else {
-      warning("unknown constant");
+      warning("unknown constant: skipped");
     }
   }
   return ScalarInteger(flags_bit);
@@ -181,6 +217,7 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
       raw_dat[i] = data[(index_p[i]-1)];
     }
     break;
+  /* int8, int16, int64, real, bit, char, char(n), varchar */
   default:
     error("unsupported type");
     break;
