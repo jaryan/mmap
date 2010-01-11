@@ -1,8 +1,34 @@
+# S3 accessor methods
+classFUN <- function(x) {
+  UseMethod("classFUN")
+}
+`classFUN<-` <- function(x, value) {
+  UseMethod("classFUN<-")
+}
+classFUN.mmap <- function(x) {
+  x$classFUN
+}
+`classFUN<-.mmap` <- function(x, value) {
+  x$classFUN <- value
+  x
+}
 
 # Basic S3 methods
-str.mmap <- function(object, ...) { print(unclass(x)) }
-summary.mmap <- function() {}
-print.mmap <- function(x, ...) { print(unclass(x)) }
+head.mmap <- function(x, n=6L, ...) {
+  x[1:(min(length(x),n))]
+}
+tail.mmap <- function(x, n=6L, ...) {
+  x[(length(x)-n):length(x)]
+}
+str.mmap <- function(object, ...) { 
+  cat("mmap object of length",length(object),":\n")
+  print(head(object))
+  str(unclass(object)) 
+}
+summary.mmap <- function(object) { str(unclass(object)) }
+print.mmap <- function(x, ...) {
+  cat(paste("<mmap object ",names(x$filedesc),">\n",sep="")) 
+}
 print.summary_mmap <- function() {}
 
 close.mmap <- function(con, ...) {
@@ -12,23 +38,29 @@ close.mmap <- function(con, ...) {
 # creat flags using upper case symbols/strings
 # mmapFlags(PROT_READ,PROT_WRITE) OR mmapFlags(PROT_READ | PROT_WRITE)
 mmapFlags <- function(...) {
+  flags <- as.character(match.call(call=sys.call())[-1])
   if(nargs()==1) {
-    flags <- gsub(" ","",unlist(strsplit(as.character(match.call(call=sys.call())[-1]),"\\|")))
+    flags <- gsub(" ","",unlist(strsplit(flags,"\\|")))
     flags <- gsub('\"',"",flags) # in case "" | ""
-  } else {
-    flags <- as.character(match.call(call=sys.call())[-1])
   }
-  .Call("mmap_mkFlags", flags)
+  .Call("mmap_mkFlags", flags, PKG="mmap")
 }
 
 # S3 constructor
-mmap <- function(file, mode=integer(), classFUN=NULL, prot, flags, ...) {
+mmap <- function(file, mode=integer(), classFUN=NULL,
+                 prot=mmapFlags("PROT_READ"),
+                 flags=mmapFlags("MAP_SHARED"),
+                 ...) {
     if(missing(file))
       stop("'file' must be specified")
-    mmap_obj <- .Call("mmap_mmap", mode, file, 3L, 1L)
-    if(is.null(classFUN)) classFUN <- function(x) x
-    mmap_obj[[6]] <- classFUN
-    names(mmap_obj) <- c("data","bytes","filedesc","storage.mode","pagesize","classFUN")
+    mmap_obj <- .Call("mmap_mmap", mode, file, as.integer(prot), as.integer(flags), PKG="mmap")
+    names(mmap_obj) <- c("data",
+                         "bytes",
+                         "filedesc",
+                         "storage.mode",
+                         "pagesize")
+    mmap_obj$filedesc <- structure(mmap_obj$filedesc, .Names=file)
+    mmap_obj$classFUN <- classFUN
     class(mmap_obj) <- "mmap"
     return(mmap_obj)
 }
@@ -37,13 +69,13 @@ mmap <- function(file, mode=integer(), classFUN=NULL, prot, flags, ...) {
 munmap <- function(x) {
   if(!is.mmap(x))
     stop("mmap object required to munmap")
-  .Call("mmap_munmap", x)
+  .Call("mmap_munmap", x, PKG="mmap")
 }
 
 msync <- function(x) {
   if(!is.mmap(x))
     stop("mmap object required to munmap")
-  .Call("mmap_msync", x)
+  .Call("mmap_msync", x, PKG="mmap")
 }
 
 mprotect <- function(x, i, prot) {
@@ -51,7 +83,7 @@ mprotect <- function(x, i, prot) {
 
   # TODO: add ability to protect multiple pages in a
   # range
-  .Call("mmap_mprotect", x, i, prot)
+  .Call("mmap_mprotect", x, i, prot, PKG="mmap")
 }
 
 is.mmap <- function(x) {
@@ -62,9 +94,9 @@ is.mmap <- function(x) {
   if(!x[[2]]) stop('no data to extract')
   if(missing(i))
     i <- 1:length(x)
-  if(is.null(x[[6]])) {
-    .Call("mmap_extract", i, x)
-  } else as.function(x[[6]])(.Call("mmap_extract", i, x))
+  if(is.null(classFUN(x))) {
+    .Call("mmap_extract", i, x, PKG="mmap")
+  } else as.function(classFUN(x))(.Call("mmap_extract", i, x, PKG="mmap"))
 }
 
 `[<-.mmap` <- function(x, i, ..., sync=TRUE, value) {
@@ -73,7 +105,7 @@ is.mmap <- function(x) {
   if(missing(i))
     i <- 1:length(x)
   if(i > length(x) || i < 0 || length(i) != length(value)) stop("improper 'i' range")
-  .Call("mmap_replace", i, value, x) 
+  .Call("mmap_replace", i, value, x, PKG="mmap") 
   if(sync)
     msync(x)
   x

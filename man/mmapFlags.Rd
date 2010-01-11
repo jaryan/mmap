@@ -13,7 +13,7 @@ mmapFlags(...)
 }
 \arguments{
   \item{\dots}{
-A comma seperated list of zero or more
+A comma or vertical bar \sQuote{|} seperated list of zero or more
 valid \code{mmap} constants. May be quoted or unquoted
 from the following: PROT_READ, PROT_WRITE, PROT_EXEC,
 PROT_NONE, MAP_SHARED, MAP_PRIVATE, MAP_FIXED, MS_ASYNC, MS_SYNC,
@@ -32,34 +32,23 @@ semantics close to that of native C calls.
 \value{
 An integer vector of length 1.
 }
-\references{
-%% ~put references to the literature/web site here ~
-}
 \author{
 Jeffrey A. Ryan
 }
 \note{
-%%  ~~further notes~~
+Read your system's \sQuote{mmap} man pages for use details.
 }
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+See Also as \code{\link{mmap}}, ~~~
+See Also as \code{\link{mprotect}}, ~~~
 }
 \examples{
-##---- Should bVe DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-function (...) 
-{
-    flags <- as.character(match.call(call = sys.call())[-1])
-    .Call("mmap_mkFlags", flags)
-  }
+mmapFlags(PROT_READ)
+mmapFlags(PROT_READ | PROT_WRITE)
+mmapFlags("PROT_READ" | "PROT_WRITE")
+mmapFlags(PROT_READ , PROT_WRITE)
+mmapFlags("PROT_READ" , "PROT_WRITE")
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
+\keyword{ utilities }

@@ -1,6 +1,8 @@
 \name{mmap}
 \alias{mmap}
 \alias{munmap}
+\alias{classFUN}
+\alias{classFUN<-}
 \alias{is.mmap}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -48,7 +50,7 @@ Not all will apply within the context of R objects.
 unused
 }
   \item{x}{
-an object of class \sQuote{mmap}.
+an object of class \sQuote{mmap}
 }
 }
 \details{
@@ -63,13 +65,28 @@ future releases.
 }
 \value{
 An object of class \code{mmap} containing
-the fields 
-\sQuote{data} (pointer to the starting address),
-\sQuote{bytes} (length of object in bytes),
-\sQuote{filedesc} (integer of file descriptor),
-\sQuote{storage.mode} (\R type of data),
-\sQuote{pagesize} (OS pagesize),
-\sQuote{classFUN} (conversion function for extraction),
+the fields: 
+\describe{
+ \item{data:}{
+pointer to the \sQuote{mmap}ped file.
+}
+ \item{bytes:}{
+size of file in bytes. This is not in resident memory.
+}
+ \item{filedesc:}{
+A names integer file descriptor, where the name
+is path to the file mapped.
+}
+ \item{storage.mode:}{
+\R type of raw data on disk.
+}
+ \item{pagesize:}{
+operating system pagesize.
+}
+ \item{classFUN:}{
+conversion function on extraction (optional).
+}
+}
 }
 \references{
 mmap: \url{http://www.opengroup.org/onlinepubs/000095399/functions/mmap.html}
@@ -82,7 +99,7 @@ This is currently only functional on POSIX compliant systems.
 }
 
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+See Also as \code{\link{mmapFlags}},
 }
 \examples{
 \dontrun{

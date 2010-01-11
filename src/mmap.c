@@ -100,8 +100,10 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot, SEXP _flags) {
 
   stat(CHAR(STRING_ELT(_fildesc,0)), &st);
   fd = open(CHAR(STRING_ELT(_fildesc,0)), O_RDWR);
+  if(fd < 0)
+    error("unable to open file");
   data = mmap((caddr_t)0, (int)st.st_size, INTEGER(_prot)[0], INTEGER(_flags)[0], fd, 0);
-  if(!data) 
+  if(!data)
     error("unable to mmap file");
   
   SEXP mmap_obj;
@@ -124,10 +126,10 @@ SEXP mmap_munmap (SEXP mmap_obj) {
   if(data == NULL)
     error("invalid mmap pointer");
 
-  munmap(data, MMAP_SIZE(mmap_obj));
+  int ret = munmap(data, MMAP_SIZE(mmap_obj));
   close(fd); /* should be moved back to R */
   R_ClearExternalPtr(VECTOR_ELT(mmap_obj,0));
-  return(ScalarLogical(TRUE)); 
+  return(ScalarInteger(ret)); 
 } /*}}}*/
 
 /* {{{ mmap_msync */
@@ -191,8 +193,10 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
     for(i=0;  i < LEN; i++) {
       ival =  (index_p[i]-1)*sizeof(int);
       if( ival > upper_bound || ival < 0 )
-        error("'i=%i' out of bounds", i);
-      memcpy(int_buf, &(data[(index_p[i]-1) * sizeof(int)]), sizeof(char) * sizeof(int));
+        error("'i=%i' out of bounds", index_p[i]);
+      memcpy(int_buf, 
+             &(data[(index_p[i]-1)*sizeof(int)]),
+             sizeof(char)*sizeof(int));
       int_dat[i] = (int)*(int *)(int_buf); 
     }
     break;
@@ -202,8 +206,10 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
     for(i=0;  i < LEN; i++) {
       ival =  (index_p[i]-1)*sizeof(double);
       if( ival > upper_bound || ival < 0 )
-        error("'i=%i' out of bounds", i);
-      memcpy(real_buf, &(data[(index_p[i]-1) * sizeof(double)]), sizeof(char) * sizeof(double));
+        error("'i=%i' out of bounds", index_p[i]);
+      memcpy(real_buf, 
+             &(data[(index_p[i]-1)*sizeof(double)]), 
+             sizeof(char)*sizeof(double));
       real_dat[i] = (double)*(double *)(real_buf); 
     }
     break;
@@ -213,7 +219,7 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
     for(i=0;  i < LEN; i++) {
       ival =  (index_p[i]-1);
       if( ival > upper_bound || ival < 0 )
-        error("'i=%i' out of bounds", i);
+        error("'i=%i' out of bounds", index_p[i]);
       raw_dat[i] = data[(index_p[i]-1)];
     }
     break;
