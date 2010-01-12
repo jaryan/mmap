@@ -1,15 +1,28 @@
 # S3 accessor methods
-classFUN <- function(x) {
-  UseMethod("classFUN")
+extractFUN <- function(x) {
+  UseMethod("extractFUN")
 }
-`classFUN<-` <- function(x, value) {
-  UseMethod("classFUN<-")
+`extractFUN<-` <- function(x, value) {
+  UseMethod("extractFUN<-")
 }
-classFUN.mmap <- function(x) {
-  x$classFUN
+extractFUN.mmap <- function(x) {
+  x$extractFUN
 }
-`classFUN<-.mmap` <- function(x, value) {
-  x$classFUN <- value
+`extractFUN<-.mmap` <- function(x, value) {
+  x$extractFUN <- value
+  x
+}
+replaceFUN <- function(x) {
+  UseMethod("replaceFUN")
+}
+`replaceFUN<-` <- function(x, value) {
+  UseMethod("replaceFUN<-")
+}
+replaceFUN.mmap <- function(x) {
+  x$replaceFUN
+}
+`replaceFUN<-.mmap` <- function(x, value) {
+  x$replaceFUN <- value
   x
 }
 
@@ -47,20 +60,26 @@ mmapFlags <- function(...) {
 }
 
 # S3 constructor
-mmap <- function(file, mode=integer(), classFUN=NULL,
+mmap <- function(file, mode=int32(), 
+                 extractFUN=NULL, replaceFUN=NULL,
                  prot=mmapFlags("PROT_READ"),
                  flags=mmapFlags("MAP_SHARED"),
                  ...) {
     if(missing(file))
       stop("'file' must be specified")
-    mmap_obj <- .Call("mmap_mmap", mode, file, as.integer(prot), as.integer(flags), PKG="mmap")
+    mmap_obj <- .Call("mmap_mmap", 
+                      mode,
+                      file,
+                      as.integer(prot), 
+                      as.integer(flags), PKG="mmap")
     names(mmap_obj) <- c("data",
                          "bytes",
                          "filedesc",
                          "storage.mode",
                          "pagesize")
     mmap_obj$filedesc <- structure(mmap_obj$filedesc, .Names=file)
-    mmap_obj$classFUN <- classFUN
+    mmap_obj$extractFUN <- extractFUN
+    mmap_obj$replaceFUN <- replaceFUN
     class(mmap_obj) <- "mmap"
     return(mmap_obj)
 }
@@ -69,7 +88,7 @@ mmap <- function(file, mode=integer(), classFUN=NULL,
 munmap <- function(x) {
   if(!is.mmap(x))
     stop("mmap object required to munmap")
-  .Call("mmap_munmap", x, PKG="mmap")
+  invisible(.Call("mmap_munmap", x, PKG="mmap"))
 }
 
 msync <- function(x) {
@@ -94,9 +113,9 @@ is.mmap <- function(x) {
   if(!x[[2]]) stop('no data to extract')
   if(missing(i))
     i <- 1:length(x)
-  if(is.null(classFUN(x))) {
+  if(is.null(extractFUN(x))) {
     .Call("mmap_extract", i, x, PKG="mmap")
-  } else as.function(classFUN(x))(.Call("mmap_extract", i, x, PKG="mmap"))
+  } else as.function(extractFUN(x))(.Call("mmap_extract", i, x, PKG="mmap"))
 }
 
 `[<-.mmap` <- function(x, i, ..., sync=TRUE, value) {
@@ -113,8 +132,6 @@ is.mmap <- function(x) {
 
 length.mmap <- function(x) {
   size_in_bytes <- x[[2]]
-  storage_mode <- storage.mode(x[[4]])
-  size <- switch(storage_mode,
-    "raw"=1L,"integer"=4L, "double"=8L)
+  size <- attr(x$storage.mode,"bytes")
   as.integer(size_in_bytes/size)
 }

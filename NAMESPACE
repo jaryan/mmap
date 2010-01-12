@@ -11,17 +11,24 @@ export(
 
        is.mmap,
 
-       classFUN,
-       "classFUN<-"
+       extractFUN,
+       "extractFUN<-",
+       replaceFUN,
+       "replaceFUN<-",
+
+       char, int8, int16, int32, real32, real64
       )
 
 # S3 methods
 S3method('[',mmap)
 S3method('[<-',mmap)
-S3method(classFUN,mmap)
-S3method('classFUN<-',mmap)
+S3method(extractFUN,mmap)
+S3method('extractFUN<-',mmap)
+S3method(replaceFUN,mmap)
+S3method('replaceFUN<-',mmap)
 S3method(close,mmap)
 S3method(str,mmap)
 S3method(print,mmap)
-S3method(head,mmap)
-S3method(tail,mmap)
+S3method(length, mmap)
+#S3method(head,mmap)
+#S3method(tail,mmap)

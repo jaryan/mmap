@@ -1,8 +1,10 @@
 \name{mmap}
 \alias{mmap}
 \alias{munmap}
-\alias{classFUN}
-\alias{classFUN<-}
+\alias{extractFUN}
+\alias{extractFUN<-}
+\alias{replaceFUN}
+\alias{replaceFUN<-}
 \alias{is.mmap}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -12,22 +14,43 @@ Map And Unmap Pages of Memory
 Wrapper to POSIX compliant \sQuote{mmap} system calls.
 }
 \usage{
-mmap(file, mode = integer(), classFUN=NULL, prot, flags, ...)
+mmap(file, mode = int32(), 
+     extractFUN=NULL, replaceFUN=NULL,
+     prot=mmapFlags("PROT_READ"),
+     flags=mmapFlags("MAP_SHARED"),
+     ...)
 munmap(x)
 
 is.mmap(x)
+
+extractFUN(x)
+replaceFUN(x)
+
+extractFUN(x) <- value
+replaceFUN(x) <- value
 }
 \arguments{
   \item{file}{
 name of file holding data to be mapped into memory
 }
   \item{mode}{
-mode of data as returned by \R \code{storage.mode}
+mode of data on disk. Use one of
+\sQuote{char()} (\R raw),
+\sQuote{int8()} (\R raw),
+\sQuote{int16()},
+\sQuote{int32()} (\R integer),
+\sQuote{real32()},
+\sQuote{real64()} (\R double).
+See the related functions for details.
 }
-  \item{classFUN}{
+  \item{extractFUN}{
 A function to convert the raw/integer/double values
 returned by subsetting into a complex R class. If no
 change is needed, set to NULL (default).
+}
+  \item{replaceFUN}{
+A function to convert the R classes to underlying
+C types for storage.
 }
   \item{prot}{
 access permission to data being mapped.
@@ -52,6 +75,9 @@ unused
   \item{x}{
 an object of class \sQuote{mmap}
 }
+  \item{value}{
+a function to apply upon extraction or replacement.
+}
 }
 \details{
 The general semantics of the R function map to
@@ -64,7 +90,8 @@ currently mapped into memory.  This may change in
 future releases.
 }
 \value{
-An object of class \code{mmap} containing
+The mmap call
+returns an object of class \code{mmap} containing
 the fields: 
 \describe{
  \item{data:}{
@@ -83,8 +110,11 @@ is path to the file mapped.
  \item{pagesize:}{
 operating system pagesize.
 }
- \item{classFUN:}{
+ \item{extractFUN:}{
 conversion function on extraction (optional).
+}
+ \item{replaceFUN:}{
+conversion function for replacement (optional).
 }
 }
 }
@@ -115,12 +145,12 @@ ints[]
 munmap(ints)
 
 # store Dates as 'int' on disk
-DATE <- mmap(tmp,classFUN=function(x) structure(x,class="Date"))
+DATE <- mmap(tmp,extractFUN=function(x) structure(x,class="Date"))
 DATE[]
 munmap(DATE)
 
 # store 2 decimal numeric as 'int' on disk
-num <- mmap(tmp,classFUN=function(x) x/100)
+num <- mmap(tmp,extractFUN=function(x) x/100)
 num[]
 munmap(num)
 

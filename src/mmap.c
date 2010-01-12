@@ -168,10 +168,13 @@ Rprintf("offset: %i\n",(ival/pagesize)*pagesize);
 /* {{{ mmap_extract */
 SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   int b, i, ival;
-  char *data, *int_buf[sizeof(int)], *real_buf[sizeof(double)];
+  unsigned char *data;
+  char *int_buf[sizeof(int)], *real_buf[sizeof(double)];
+  char *short_buf[sizeof(short)], *float_buf[sizeof(float)];
   PROTECT(index = coerceVector(index,INTSXP));
   int LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
+  int Cbytes = MMAP_CBYTES(mmap_obj);
 
   int *int_dat;
   double *real_dat;
@@ -189,15 +192,38 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   switch(mode) {
   case INTSXP:
     int_dat = INTEGER(dat);
-    upper_bound = (int)(MMAP_SIZE(mmap_obj)-sizeof(int));
-    for(i=0;  i < LEN; i++) {
-      ival =  (index_p[i]-1)*sizeof(int);
-      if( ival > upper_bound || ival < 0 )
-        error("'i=%i' out of bounds", index_p[i]);
-      memcpy(int_buf, 
-             &(data[(index_p[i]-1)*sizeof(int)]),
-             sizeof(char)*sizeof(int));
-      int_dat[i] = (int)*(int *)(int_buf); 
+    upper_bound = (int)(MMAP_SIZE(mmap_obj)-Cbytes);
+    switch(Cbytes) {
+      case 1:
+        for(i=0;  i < LEN; i++) {
+          ival = (index_p[i]-1);
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          int_dat[i] = (int)(data[(index_p[i]-1)]);
+        }
+        break;
+      case 2:
+        for(i=0;  i < LEN; i++) {
+          ival = (index_p[i]-1)*sizeof(short);
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          memcpy(short_buf, 
+                 &(data[(index_p[i]-1)*sizeof(short)]),
+                 sizeof(char)*sizeof(short));
+          int_dat[i] = (int)(short)*(short *)(short_buf); 
+        }
+        break;
+      case 4:
+        for(i=0;  i < LEN; i++) {
+          ival =  (index_p[i]-1)*sizeof(int);
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          memcpy(int_buf, 
+                 &(data[(index_p[i]-1)*sizeof(int)]),
+                 sizeof(char)*sizeof(int));
+          int_dat[i] = (int)*(int *)(int_buf); 
+        }
+        break;
     }
     break;
   case REALSXP:
