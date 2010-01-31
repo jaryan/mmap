@@ -16,7 +16,7 @@ Wrapper to POSIX compliant \sQuote{mmap} system calls.
 \usage{
 mmap(file, mode = int32(), 
      extractFUN=NULL, replaceFUN=NULL,
-     prot=mmapFlags("PROT_READ"),
+     prot=mmapFlags("PROT_READ","PROT_WRITE"),
      flags=mmapFlags("MAP_SHARED"),
      ...)
 munmap(x)
@@ -35,11 +35,13 @@ name of file holding data to be mapped into memory
 }
   \item{mode}{
 mode of data on disk. Use one of
-\sQuote{char()} (\R raw),
-\sQuote{int8()} (\R raw),
-\sQuote{int16()},
+\sQuote{char()} (char <-> \R raw),
+\sQuote{int8()} (char <-> \R integer),
+\sQuote{uint8()} (unsigned char <-> \R integer),
+\sQuote{int16()} (short <-> \R integer),
+\sQuote{uint16()} (unsigned short <-> \R integer),
 \sQuote{int32()} (\R integer),
-\sQuote{real32()},
+\sQuote{real32()} (\R double),
 \sQuote{real64()} (\R double).
 See the related functions for details.
 }
@@ -60,11 +62,12 @@ Set via bitwise OR with \code{mmapFlags} to one or more of
 \sQuote{PROT_EXEC}: Data can be executed,
 \sQuote{PROT_NONE}: Data cannot be accessed.
 Not all will apply within the context of R objects.
+The default is PROT_READ | PROT_WRITE.
 }
   \item{flags}{
 additional flags to \code{mmap}.
 Set via bitwise OR with \code{mmapFlags} to one or more of
-\sQuote{MAP_SHARED}: Changes are shared,
+\sQuote{MAP_SHARED}: Changes are shared (default),
 \sQuote{MAP_PRIVATE}: Changes are private,
 \sQuote{MAP_FIXED}: Interpret \emph{addr} exactly (Not Applicable).
 Not all will apply within the context of R objects.
@@ -105,7 +108,7 @@ A names integer file descriptor, where the name
 is path to the file mapped.
 }
  \item{storage.mode:}{
-\R type of raw data on disk.
+\R type of raw data on disk. See \code{types} for details.
 }
  \item{pagesize:}{
 operating system pagesize.
@@ -132,14 +135,13 @@ This is currently only functional on POSIX compliant systems.
 See Also as \code{\link{mmapFlags}},
 }
 \examples{
-\dontrun{
 
 #create a binary file
 tmp <- tempfile()
 writeBin(1:100L, tmp)
 
 # map into memory (default mode=integer())
-ints <- mmap(tmp, mode=integer()) 
+ints <- mmap(tmp, mode=int32()) 
 ints[1]
 ints[]
 munmap(ints)
@@ -155,6 +157,5 @@ num[]
 munmap(num)
 
 unlink(tmp)
-}
 }
 \keyword{ utilities }

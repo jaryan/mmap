@@ -1,0 +1,119 @@
+\name{C_types}
+\alias{types}
+\alias{char}
+\alias{int8}
+\alias{uint8}
+\alias{int16}
+\alias{uint16}
+\alias{int32}
+\alias{real32}
+\alias{real64}
+\title{
+Virtual R Types On Disk.
+}
+\description{
+These functions describe the types of raw binary
+data stored on disk. 
+}
+\usage{
+char(length = 0)
+int8(length = 0)
+uint8(length = 0)
+int16(length = 0)
+uint16(length = 0)
+int32(length = 0)
+real32(length = 0)
+real64(length = 0)
+}
+%- maybe also 'usage' for other objects documented here.
+\arguments{
+  \item{length}{
+desired length.
+}
+}
+\details{
+R has very limited storage types. There is one type
+of integer and one type of float (double).  Storage
+to disk often can be made more efficient by reducing
+the precision of the data. These functions provide
+for a sort of virtual mapping from disk to native
+R type, for use with mmap-ed files.
+
+When a memory mapping is created, a conversion method
+if declared for both extracting values from disk, as well
+as replacing elements on disk.  The preceeding
+functions are used in the internal compiled code to
+handle the conversion.
+
+It is the user's responsibility to ensure that data
+fits within the prescribed types.
+}
+\value{
+An R typed vector of length \sQuote{length} with a
+virtual type and class \sQuote{Ctype}. Additional
+information related to number of bytes and whether
+the vitrual type is signed is also contained.
+}
+\references{
+Types???
+}
+\author{
+Jeffrey A. Ryan
+}
+\note{
+R vectors may be used to create files on disk
+matching the specified type using the functions
+\code{writeBin} with the appropriate \code{size}
+argument. See also.
+}
+\section{Warning }{
+The is no attempt to store or read metadata with
+respect to the extracted or replaced data. This
+is simply a low level interface to facilitate
+data reading and writing. 
+} 
+\seealso{
+\code{\link{writeBin}}
+}
+\examples{
+tmp <- tempfile()
+
+# write a 1 byte signed integer -128:127
+writeBin(-127:127L, tmp, size=1L)
+file.info(tmp)$size
+one_byte <- mmap(tmp, int8())
+one_byte[]
+munmap(one_byte)
+
+# write a 1 byte unsigned integer 0:255
+writeBin(0:255L, tmp, size=1L)
+file.info(tmp)$size
+one_byte <- mmap(tmp, uint8())
+one_byte[]
+munmap(one_byte)
+
+# write a 2 byte integer -32768:32767
+writeBin(c(-32768L,32767L), tmp, size=2L)
+file.info(tmp)$size
+two_byte <- mmap(tmp, int16())
+two_byte[]
+munmap(two_byte)
+
+# write a 2 byte unsigned integer 0:65535
+writeBin(c(0L,65535L), tmp, size=2L)
+two_byte <- mmap(tmp, uint16())
+two_byte[]
+munmap(two_byte)
+
+# write a 4 byte integer standard R type
+writeBin(1:10L, tmp, size=4L)
+four_byte <- mmap(tmp, int32())
+four_byte[]
+munmap(four_byte)
+
+unlink(tmp)
+}
+% Add one or more standard keywords, see file 'KEYWORDS' in the
+% R documentation directory.
+\keyword{ ~kwd1 }
+\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

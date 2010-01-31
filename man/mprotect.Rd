@@ -2,10 +2,11 @@
 \alias{mprotect}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Set Protection of Memory Mapping
+Control Protection of Pages
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+Wrapper to \code{mprotect} system call.  Not all
+implementations will guarantee protection.
 }
 \usage{
 mprotect(x, i, prot)
@@ -13,52 +14,34 @@ mprotect(x, i, prot)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{x}{
-%%     ~~Describe \code{x} here~~
+\code{mmap} object.
 }
   \item{i}{
-%%     ~~Describe \code{i} here~~
+location and length of pages to protect.
 }
   \item{prot}{
-%%     ~~Describe \code{prot} here~~
+protection flag set by \code{mmapFlags}.
+Must be one or more of:
+\sQuote{PROT_NONE},
+\sQuote{PROT_READ},
+\sQuote{PROT_WRITE},
+\sQuote{PROT_EXEC}.
 }
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+This functionality is very experimental, and likely to
+be of limited use with R, as the result of a page access
+that is protected is a SIG that isn't likely to
+be caught by R.  This may be of use for other programs
+sharing resource with R.
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+0 upon success, otherwise -1.
 }
 \references{
-%% ~put references to the literature/web site here ~
+\sQuote{mprotect} man page.
 }
 \author{
-%%  ~~who you are~~
+Jeffrey A. Ryan
 }
-\note{
-%%  ~~further notes~~
-}
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
-\seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
-}
-\examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-function (x, i, prot) 
-{
-    .Call("mmap_mprotect", x, i, prot)
-  }
-}
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
 \keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

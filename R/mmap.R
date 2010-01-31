@@ -62,7 +62,7 @@ mmapFlags <- function(...) {
 # S3 constructor
 mmap <- function(file, mode=int32(), 
                  extractFUN=NULL, replaceFUN=NULL,
-                 prot=mmapFlags("PROT_READ"),
+                 prot=mmapFlags("PROT_READ","PROT_WRITE"),
                  flags=mmapFlags("MAP_SHARED"),
                  ...) {
     if(missing(file))
@@ -91,10 +91,10 @@ munmap <- function(x) {
   invisible(.Call("mmap_munmap", x, PKG="mmap"))
 }
 
-msync <- function(x) {
+msync <- function(x, flags=mmapFlags("MS_ASYNC")) {
   if(!is.mmap(x))
     stop("mmap object required to munmap")
-  .Call("mmap_msync", x, PKG="mmap")
+  .Call("mmap_msync", x, as.integer(flags), PKG="mmap")
 }
 
 mprotect <- function(x, i, prot) {
@@ -123,7 +123,8 @@ is.mmap <- function(x) {
   if(!x[[2]]) stop('no data to extract')
   if(missing(i))
     i <- 1:length(x)
-  if(i > length(x) || i < 0 || length(i) != length(value)) stop("improper 'i' range")
+  if(i > length(x) || i < 0 || length(i) != length(value))
+    stop("improper 'i' range")
   .Call("mmap_replace", i, value, x, PKG="mmap") 
   if(sync)
     msync(x)

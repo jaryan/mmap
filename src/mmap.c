@@ -77,6 +77,15 @@ SEXP mmap_mkFlags (SEXP _flags) {
     if(strcmp(cur_string,"PROT_NONE")==0) {
       flags_bit = flags_bit | PROT_NONE; continue;
     } else
+    if(strcmp(cur_string,"MS_ASYNC")==0) {
+      flags_bit = flags_bit | MS_ASYNC; continue;
+    } else
+    if(strcmp(cur_string,"MS_SYNC")==0) {
+      flags_bit = flags_bit | MS_SYNC; continue;
+    } else
+    if(strcmp(cur_string,"MS_INVALIDATE")==0) {
+      flags_bit = flags_bit | MS_INVALIDATE; continue;
+    } else
     if(strcmp(cur_string,"MAP_SHARED")==0) {
       flags_bit = flags_bit | MAP_SHARED; continue;
     } else
@@ -133,10 +142,10 @@ SEXP mmap_munmap (SEXP mmap_obj) {
 } /*}}}*/
 
 /* {{{ mmap_msync */
-SEXP mmap_msync (SEXP mmap_obj) {
+SEXP mmap_msync (SEXP mmap_obj, SEXP _flags) {
   char *data;
   data = MMAP_DATA(mmap_obj);
-  int ret = msync(data, MMAP_SIZE(mmap_obj), MS_ASYNC);
+  int ret = msync(data, MMAP_SIZE(mmap_obj), INTEGER(_flags)[0]);
   return ScalarInteger(ret);
 }/*}}}*/
 
@@ -168,13 +177,14 @@ Rprintf("offset: %i\n",(ival/pagesize)*pagesize);
 /* {{{ mmap_extract */
 SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   int b, i, ival;
-  unsigned char *data;
+  unsigned char *data; /* unsigned int and values */
   char *int_buf[sizeof(int)], *real_buf[sizeof(double)];
   char *short_buf[sizeof(short)], *float_buf[sizeof(float)];
   PROTECT(index = coerceVector(index,INTSXP));
   int LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
   int Cbytes = MMAP_CBYTES(mmap_obj);
+  int isSigned = MMAP_SIGNED(mmap_obj);
 
   int *int_dat;
   double *real_dat;
@@ -194,15 +204,25 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
     int_dat = INTEGER(dat);
     upper_bound = (int)(MMAP_SIZE(mmap_obj)-Cbytes);
     switch(Cbytes) {
-      case 1:
-        for(i=0;  i < LEN; i++) {
-          ival = (index_p[i]-1);
-          if( ival > upper_bound || ival < 0 )
-            error("'i=%i' out of bounds", index_p[i]);
-          int_dat[i] = (int)(data[(index_p[i]-1)]);
+      case 1: /* 1 byte (signed) char */
+        if(isSigned) {
+          for(i=0;  i < LEN; i++) {
+            ival = (index_p[i]-1);
+            if( ival > upper_bound || ival < 0 )
+              error("'i=%i' out of bounds", index_p[i]);
+            int_dat[i] = (int)(char)(data[(index_p[i]-1)]);
+          }
+        } else { /* unsigned */
+          for(i=0;  i < LEN; i++) {
+            ival = (index_p[i]-1);
+            if( ival > upper_bound || ival < 0 )
+              error("'i=%i' out of bounds", index_p[i]);
+            int_dat[i] = (int)(unsigned char)(data[(index_p[i]-1)]);
+          }
         }
         break;
-      case 2:
+      case 2: /* 2 byte short */
+        if(isSigned) {
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(short);
           if( ival > upper_bound || ival < 0 )
@@ -212,8 +232,19 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
                  sizeof(char)*sizeof(short));
           int_dat[i] = (int)(short)*(short *)(short_buf); 
         }
+        } else {
+        for(i=0;  i < LEN; i++) {
+          ival = (index_p[i]-1)*sizeof(short);
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          memcpy(short_buf, 
+                 &(data[(index_p[i]-1)*sizeof(short)]),
+                 sizeof(char)*sizeof(short));
+          int_dat[i] = (int)(unsigned short)*(unsigned short *)(short_buf); 
+        }  
+        }
         break;
-      case 4:
+      case 4: /* 4 byte int */
         for(i=0;  i < LEN; i++) {
           ival =  (index_p[i]-1)*sizeof(int);
           if( ival > upper_bound || ival < 0 )
@@ -224,19 +255,39 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
           int_dat[i] = (int)*(int *)(int_buf); 
         }
         break;
+      default:
+        error("unknown data type");
+        break;
     }
     break;
   case REALSXP:
     real_dat = REAL(dat);
-    upper_bound = (int)(MMAP_SIZE(mmap_obj)-sizeof(double));
-    for(i=0;  i < LEN; i++) {
-      ival =  (index_p[i]-1)*sizeof(double);
-      if( ival > upper_bound || ival < 0 )
-        error("'i=%i' out of bounds", index_p[i]);
-      memcpy(real_buf, 
-             &(data[(index_p[i]-1)*sizeof(double)]), 
-             sizeof(char)*sizeof(double));
-      real_dat[i] = (double)*(double *)(real_buf); 
+    upper_bound = (long)(MMAP_SIZE(mmap_obj)-Cbytes);
+    switch(Cbytes) {
+      case 4: /* 4 byte float */
+        for(i=0;  i < LEN; i++) {
+          ival = (index_p[i]-1);
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          memcpy(float_buf, 
+                 &(data[(index_p[i]-1)*sizeof(float)]), 
+                 sizeof(char)*sizeof(float));
+          real_dat[i] = (double)(float)*(float *)(float_buf); 
+        }
+        break;
+      case 8: /* 8 byte double */
+        for(i=0;  i < LEN; i++) {
+          ival = (index_p[i]-1);
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          memcpy(real_buf, 
+                 &(data[(index_p[i]-1)*sizeof(double)]), 
+                 sizeof(char)*sizeof(double));
+          real_dat[i] = (double)*(double *)(real_buf); 
+        }
+        break;
+      default:
+        break;
     }
     break;
   case RAWSXP:
@@ -249,7 +300,6 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
       raw_dat[i] = data[(index_p[i]-1)];
     }
     break;
-  /* int8, int16, int64, real, bit, char, char(n), varchar */
   default:
     error("unsupported type");
     break;
@@ -264,6 +314,8 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
   char *data, *buf;
   int LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
+  int Cbytes = MMAP_CBYTES(mmap_obj);
+  int P=0;
 
   if((data = MMAP_DATA(mmap_obj)) == NULL)
     error("invalid mmap pointer");
@@ -271,19 +323,42 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
   int *int_value;
   double *real_value;
 
-  int P=0;
-  PROTECT( index = coerceVector(index, INTSXP) ); P++;
+  PROTECT(value = coerceVector(value, mode)); P++;
+  PROTECT(index = coerceVector(index, INTSXP) ); P++;
   int *index_p = INTEGER(index);
   switch(mode) {
   case INTSXP:
     int_value = INTEGER(value);
-    upper_bound = (int)(MMAP_SIZE(mmap_obj)-sizeof(int));
+    short short_value;
+    upper_bound = (int)(MMAP_SIZE(mmap_obj)-Cbytes);
+    switch(Cbytes) {
+      case 2: /* 2 byte short */
+        for(i=0;  i < LEN; i++) {
+          ival = (index_p[i]-1)*sizeof(short);
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          short_value = (short)(int_value[i]); 
+          //memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(int_value[i]), sizeof(short));
+          memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(short_value), sizeof(short));
+        }
+        break;
+      case 4: /* 4 byte int */
+        for(i=0;  i < LEN; i++) {
+          ival = (index_p[i]-1)*sizeof(int);
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          memcpy(&(data[(index_p[i]-1)*sizeof(int)]), &(int_value[i]), sizeof(int));
+        }
+        break;
+    }
+/*
     for(i=0;  i < LEN; i++) {
       ival =  (index_p[i]-1)*sizeof(int);
       if( ival > upper_bound || ival < 0 )
         error("'i=%i' out of bounds", i);
       memcpy(&(data[(index_p[i]-1)*sizeof(int)]), &(int_value[i]), sizeof(int));
     }
+*/
     break;
   case REALSXP:
     real_value = REAL(value);

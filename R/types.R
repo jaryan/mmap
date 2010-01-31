@@ -1,23 +1,39 @@
-char <- C_raw <- function(n=0) {
-  structure(integer(n), bytes=1L, class=c("Ctype","char"))
+# C_types
+
+char <- C_raw <- function(length=0) {
+  structure(integer(length), bytes=1L, signed=1L, class=c("Ctype","char"))
 }
 
-int8 <- C_char <- function(n=0) {
-  structure(integer(n), bytes=1L, class=c("Ctype","char"))
+int8 <- C_char <- function(length=0) {
+  # signed 1 byte int
+  structure(integer(length), bytes=1L, signed=1L, class=c("Ctype","char"))
 }
 
-int16 <- C_short <- function(n=0) {
-  structure(integer(n), bytes=2L, class=c("Ctype","short"))
+uint8 <- C_uchar <- function(length=0) {
+  # unsigned 1 byte int
+  structure(integer(length), bytes=1L, signed=0L, class=c("Ctype","uchar"))
 }
 
-int32 <- C_int <- function(n=0) {
-  structure(integer(n), bytes=4L, class=c("Ctype","int"))
+int16 <- C_short <- function(length=0) {
+  structure(integer(length), bytes=2L, signed=1L, class=c("Ctype","short"))
 }
 
-real32 <- C_float <- function(n=0) { 
-  structure(double(n),  bytes=4L, class=c("Ctype","float"))
+uint16 <- C_ushort <- function(length=0) {
+  structure(integer(length), bytes=2L, signed=0L, class=c("Ctype","ushort"))
 }
 
-real64 <- C_double <- function(n=0) { 
-  structure(double(n),  bytes=8L, class=c("Ctype","double"))
+int32 <- C_int <- function(length=0) {
+  structure(integer(length), bytes=4L, signed=1L, class=c("Ctype","int"))
+}
+
+uint32 <- C_uint <- function(length=0) {
+  structure(integer(length), bytes=4L, signed=0L, class=c("Ctype","uint"))
+}
+
+real32 <- C_float <- function(length=0) { 
+  structure(double(length),  bytes=4L, class=c("Ctype","float"))
+}
+
+real64 <- C_double <- function(length=0) { 
+  structure(double(length),  bytes=8L, class=c("Ctype","double"))
 }
