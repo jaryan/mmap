@@ -315,6 +315,7 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
   int LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
   int Cbytes = MMAP_CBYTES(mmap_obj);
+  int isSigned = MMAP_SIGNED(mmap_obj);
   int P=0;
 
   if((data = MMAP_DATA(mmap_obj)) == NULL)
@@ -322,6 +323,8 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
 
   int *int_value;
   double *real_value;
+    short short_value;
+    char char_value;
 
   PROTECT(value = coerceVector(value, mode)); P++;
   PROTECT(index = coerceVector(index, INTSXP) ); P++;
@@ -329,10 +332,31 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
   switch(mode) {
   case INTSXP:
     int_value = INTEGER(value);
-    short short_value;
     upper_bound = (int)(MMAP_SIZE(mmap_obj)-Cbytes);
     switch(Cbytes) {
+      case 1: /* 1 byte char */
+      if(isSigned) {
+        for(i=0;  i < LEN; i++) {
+          ival = (index_p[i]-1)*sizeof(char);
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          char_value = (char)(int_value[i]); 
+          //memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(int_value[i]), sizeof(short));
+          memcpy(&(data[(index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
+        }
+      } else {
+        for(i=0;  i < LEN; i++) {
+          ival = (index_p[i]-1)*sizeof(char);
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          char_value = (unsigned char)(int_value[i]); 
+          //memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(int_value[i]), sizeof(short));
+          memcpy(&(data[(index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
+        }
+      }
+      break;
       case 2: /* 2 byte short */
+      if(isSigned) {
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(short);
           if( ival > upper_bound || ival < 0 )
@@ -341,7 +365,17 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
           //memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(int_value[i]), sizeof(short));
           memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(short_value), sizeof(short));
         }
-        break;
+      } else {
+        for(i=0;  i < LEN; i++) {
+          ival = (index_p[i]-1)*sizeof(short);
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          short_value = (unsigned short)(int_value[i]); 
+          //memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(int_value[i]), sizeof(short));
+          memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(short_value), sizeof(short));
+        }
+      }
+      break;
       case 4: /* 4 byte int */
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(int);

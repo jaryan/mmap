@@ -1,0 +1,21 @@
+%\VignetterIndexEntry{mmap: Memory Mapped Files}
+\documentclass{article}
+\usepackage{hyperref}
+\hypersetup{colorlinks,%
+            citecolor=black,%
+            linkcolor=blue,%
+            urlcolor=blue,%
+            }
+
+\title{\bf mmap: Memory Mapped Files}
+\author{Jeffrey A. Ryan}
+\date{February 1, 2009}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+
+\end{document}

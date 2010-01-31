@@ -103,6 +103,15 @@ munmap(two_byte)
 writeBin(c(0L,65535L), tmp, size=2L)
 two_byte <- mmap(tmp, uint16())
 two_byte[]
+
+# replacement methods automatically (watch precision!!)
+two_byte[1] <- 50000
+two_byte[]
+
+# values outside of range (above 65535 for uint16 will be wrong)
+two_byte[1] <- 65535 + 1
+two_byte[]
+
 munmap(two_byte)
 
 # write a 4 byte integer standard R type
