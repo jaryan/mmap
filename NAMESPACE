@@ -33,3 +33,5 @@ S3method(print,mmap)
 S3method(length, mmap)
 #S3method(head,mmap)
 #S3method(tail,mmap)
+
+S3method(as.list, Ctype)

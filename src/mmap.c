@@ -176,16 +176,21 @@ Rprintf("offset: %i\n",(ival/pagesize)*pagesize);
 
 /* {{{ mmap_extract */
 SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
-  int b, i, ival;
+  int v, b, i, ii, ival;
+  int P=0;
   unsigned char *data; /* unsigned int and values */
   char *int_buf[sizeof(int)], *real_buf[sizeof(double)];
   char *short_buf[sizeof(short)], *float_buf[sizeof(float)];
   PROTECT(index = coerceVector(index,INTSXP));
-  int LEN = length(index);  
+  int byteLEN, LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
   int Cbytes = MMAP_CBYTES(mmap_obj);
   int isSigned = MMAP_SIGNED(mmap_obj);
 
+  char *byte_buf;
+  SEXP byteBuf;
+  PROTECT(byteBuf = allocVector(RAWSXP,LEN*Cbytes));
+  byte_buf = RAW(byteBuf);
   int *int_dat;
   double *real_dat;
   unsigned char *raw_dat;
@@ -195,12 +200,21 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
     error("invalid mmap pointer");
 
   SEXP dat;
-  PROTECT(dat = allocVector(mode,LEN));
+  if(mode==VECSXP) {
+    PROTECT(dat = allocVector(VECSXP, length(MMAP_SMODE(mmap_obj))));
+  } else PROTECT(dat = allocVector(mode,LEN));
+
   int *index_p = INTEGER(index);
   int upper_bound;
 
+  /* need R typed storage for structures... */
+  int fieldCbytes;
+  SEXP vec_dat;
+  PROTECT(vec_dat = allocVector(INTSXP, LEN));
+  int *int_vec_dat = INTEGER(vec_dat);
+
   switch(mode) {
-  case INTSXP:
+  case INTSXP: /* {{{ */
     int_dat = INTEGER(dat);
     upper_bound = (int)(MMAP_SIZE(mmap_obj)-Cbytes);
     switch(Cbytes) {
@@ -259,8 +273,8 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
         error("unknown data type");
         break;
     }
-    break;
-  case REALSXP:
+    break; /* }}} */
+  case REALSXP: /* {{{ */
     real_dat = REAL(dat);
     upper_bound = (long)(MMAP_SIZE(mmap_obj)-Cbytes);
     switch(Cbytes) {
@@ -289,8 +303,8 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
       default:
         break;
     }
-    break;
-  case RAWSXP:
+    break; /* }}} */
+  case RAWSXP: /* {{{ */
     raw_dat = RAW(dat);
     upper_bound = (int)(MMAP_SIZE(mmap_obj)-1);
     for(i=0;  i < LEN; i++) {
@@ -299,14 +313,64 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
         error("'i=%i' out of bounds", index_p[i]);
       raw_dat[i] = data[(index_p[i]-1)];
     }
+    break; /* }}} */
+  case VECSXP:  /* corresponds to C struct for mmap package */
+    /* extract_struct:
+      
+       - bytes in struct from MMAP_CBYTES
+       - loop through all `i` memcpy struct to byte array
+       - loop through VECSXP;
+           test for TYPEOF
+           copy bytes by location into TYPEd array
+       - collect arrays into VECSXP dat
+    */
+    for(i=0; i<LEN; i++) {
+      /* byte_buf now has all bytes for all structs */
+      memcpy(&(byte_buf[i*Cbytes]), &(data[(index_p[i]-1) * Cbytes]), Cbytes); 
+    }  
+    for(v=0; v<length(MMAP_SMODE(mmap_obj)); v++) {
+      fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),install("bytes")))[0];
+      switch(TYPEOF(VECTOR_ELT(MMAP_SMODE(mmap_obj), v))) {
+        case INTSXP:
+          PROTECT(vec_dat = allocVector(INTSXP, LEN)); 
+          int_vec_dat = INTEGER(vec_dat);
+          switch(fieldCbytes) {
+            case 2:
+            for(ii=0; ii<LEN; ii++) {
+              memcpy(int_buf, 
+                     &(byte_buf[ii*Cbytes+MMAP_OFFSET(mmap_obj,v)]),
+                     sizeof(char)*sizeof(short));
+              int_vec_dat[ii] = (int)*(short *)(int_buf); 
+            }
+            break;
+            case 4:
+            for(ii=0; ii<LEN; ii++) {
+              memcpy(int_buf, 
+                     &(byte_buf[ii*Cbytes+MMAP_OFFSET(mmap_obj,v)]),
+                     sizeof(char)*sizeof(int));
+              int_vec_dat[ii] = (int)*(int *)(int_buf); 
+            }
+            break;
+          }
+          SET_VECTOR_ELT(dat, v, (vec_dat));
+          break;
+        case REALSXP:
+          break;
+      }
+      UNPROTECT(1);
+    }
     break;
   default:
     error("unsupported type");
     break;
   }
-  UNPROTECT(2);
+  UNPROTECT(4);
   return dat;
 }/*}}}*/
+
+SEXP mmap_extract_struct(SEXP mmap_obj, SEXP index) {
+
+}
 
 /* mmap_replace {{{ */
 SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
