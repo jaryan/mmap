@@ -181,7 +181,7 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   unsigned char *data; /* unsigned int and values */
   char *int_buf[sizeof(int)], *real_buf[sizeof(double)];
   char *short_buf[sizeof(short)], *float_buf[sizeof(float)];
-  PROTECT(index = coerceVector(index,INTSXP));
+  PROTECT(index = coerceVector(index,INTSXP)); P++;
   int byteLEN, LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
   int Cbytes = MMAP_CBYTES(mmap_obj);
@@ -201,6 +201,7 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   if(mode==VECSXP) {
     PROTECT(dat = allocVector(VECSXP, length(MMAP_SMODE(mmap_obj))));
   } else PROTECT(dat = allocVector(mode,LEN));
+  P++;
 
   int *index_p = INTEGER(index);
   int upper_bound;
@@ -212,7 +213,7 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   int fieldSigned;
   int offset;
   SEXP vec_dat;  /* need all R types supported: INT/REAL/CPLX/RAW */
-  PROTECT(vec_dat = allocVector(INTSXP, LEN));
+  PROTECT(vec_dat = allocVector(INTSXP, LEN)); P++;
   int *int_vec_dat = INTEGER(vec_dat);
 
   switch(mode) {
@@ -317,7 +318,7 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
     }
     break; /* }}} */
   case VECSXP:  /* corresponds to C struct for mmap package */
-    PROTECT(byteBuf = allocVector(RAWSXP,LEN*Cbytes));
+    PROTECT(byteBuf = allocVector(RAWSXP,LEN*Cbytes)); P++;
     byte_buf = RAW(byteBuf);
     /* extract_struct:
       
@@ -379,18 +380,18 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
             break;
           }
           SET_VECTOR_ELT(dat, v, (vec_dat));
+          UNPROTECT(1);
           break;
         case REALSXP:
           break;
       }
-      UNPROTECT(1);
     }
     break;
   default:
     error("unsupported type");
     break;
   }
-  UNPROTECT(4);
+  UNPROTECT(P);
   return dat;
 }/*}}}*/
 
