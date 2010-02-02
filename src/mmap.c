@@ -189,8 +189,6 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
 
   char *byte_buf;
   SEXP byteBuf;
-  PROTECT(byteBuf = allocVector(RAWSXP,LEN*Cbytes));
-  byte_buf = RAW(byteBuf);
   int *int_dat;
   double *real_dat;
   unsigned char *raw_dat;
@@ -207,9 +205,13 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   int *index_p = INTEGER(index);
   int upper_bound;
 
-  /* need R typed storage for structures... */
+  /* need R typed storage for structures... 
+     ideally we needn't alloc for types
+     that are not used --- move alloc to do that */
   int fieldCbytes;
-  SEXP vec_dat;
+  int fieldSigned;
+  int offset;
+  SEXP vec_dat;  /* need all R types supported: INT/REAL/CPLX/RAW */
   PROTECT(vec_dat = allocVector(INTSXP, LEN));
   int *int_vec_dat = INTEGER(vec_dat);
 
@@ -315,6 +317,8 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
     }
     break; /* }}} */
   case VECSXP:  /* corresponds to C struct for mmap package */
+    PROTECT(byteBuf = allocVector(RAWSXP,LEN*Cbytes));
+    byte_buf = RAW(byteBuf);
     /* extract_struct:
       
        - bytes in struct from MMAP_CBYTES
@@ -325,28 +329,50 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
        - collect arrays into VECSXP dat
     */
     for(i=0; i<LEN; i++) {
-      /* byte_buf now has all bytes for all structs */
+      /* byte_buf (byteBuf) now has all bytes for all structs */
       memcpy(&(byte_buf[i*Cbytes]), &(data[(index_p[i]-1) * Cbytes]), Cbytes); 
     }  
     for(v=0; v<length(MMAP_SMODE(mmap_obj)); v++) {
+      offset = MMAP_OFFSET(mmap_obj,v);
       fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),install("bytes")))[0];
+      fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),install("signed")))[0];
       switch(TYPEOF(VECTOR_ELT(MMAP_SMODE(mmap_obj), v))) {
         case INTSXP:
           PROTECT(vec_dat = allocVector(INTSXP, LEN)); 
           int_vec_dat = INTEGER(vec_dat);
           switch(fieldCbytes) {
-            case 2:
+            case sizeof(char):
+            if(fieldSigned) {   /* 1 byte char */
+            for(ii=0; ii<LEN; ii++) {
+              int_vec_dat[ii] = (int)(char)(byte_buf[ii*Cbytes+offset]);;
+            }
+            } else {            /* 1 byte unsigned char */
+            for(ii=0; ii<LEN; ii++) {
+              int_vec_dat[ii] = (int)(unsigned char)(byte_buf[ii*Cbytes+offset]);;
+            }
+            }
+            break;
+            case sizeof(short):
+            if(fieldSigned) {   /* 2 byte */
             for(ii=0; ii<LEN; ii++) {
               memcpy(int_buf, 
-                     &(byte_buf[ii*Cbytes+MMAP_OFFSET(mmap_obj,v)]),
+                     &(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(short));
               int_vec_dat[ii] = (int)*(short *)(int_buf); 
             }
-            break;
-            case 4:
+            } else {            /* 2 byte unsigned short */
             for(ii=0; ii<LEN; ii++) {
               memcpy(int_buf, 
-                     &(byte_buf[ii*Cbytes+MMAP_OFFSET(mmap_obj,v)]),
+                     &(byte_buf[ii*Cbytes+offset]),
+                     sizeof(char)*sizeof(short));
+              int_vec_dat[ii] = (int)*(unsigned short *)(int_buf); 
+            }
+            }
+            break;
+            case sizeof(int): /* 4 byte */
+            for(ii=0; ii<LEN; ii++) {
+              memcpy(int_buf, 
+                     &(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(int));
               int_vec_dat[ii] = (int)*(int *)(int_buf); 
             }

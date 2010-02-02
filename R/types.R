@@ -38,7 +38,7 @@ real64 <- C_double <- function(length=0) {
   structure(double(length),  bytes=8L, class=c("Ctype","double"))
 }
 
-as.list.Ctype <- function(...) {
+struct <- as.list.Ctype <- function(...) {
   dots <- list(...)
   bytes <- sapply(dots, attr, which="bytes")
   structure(dots, bytes=sum(bytes), offset=cumsum(bytes)-bytes,

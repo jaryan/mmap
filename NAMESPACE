@@ -17,7 +17,8 @@ export(
        "replaceFUN<-",
 
        char, int8,  int16,  int32,  real32,  real64,
-             uint8, uint16
+             uint8, uint16,
+       struct
       )
 
 # S3 methods
