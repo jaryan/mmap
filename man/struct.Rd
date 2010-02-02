@@ -76,17 +76,20 @@ f <- file(tmp, open="ab")
 u_int_8 <- c(1L, 255L, 22L)  # 1 byte, valid range 0:255
 int_8 <- c(1L, -127L, -22L)  # 1 byte, valid range -128:127
 int_16 <- c(1L, 25000L, -1000L) # 2 byte, valid range -32k:32k
-int_32 <- c(98743L, -9083299L, 0) # 4 byte, standard R integer
+int_32 <- c(98743L, -9083299L, 0L) # 4 byte, standard R integer
+float_32 <- c(9832.22, 3.14159, 0.00001)
 
 for(i in 1:3) {
   writeBin(u_int_8[i], f, size=1L)
   writeBin(int_8[i],   f, size=1L)
   writeBin(int_16[i],  f, size=2L)
   writeBin(int_32[i],  f, size=4L)
+  writeBin(float_32[i],f, size=4L)
+  writeBin(float_32[i],f, size=8L)
 }
 close(f)
 
-m <- mmap(tmp, struct(uint8(), int8(), int16(), int32()))
+m <- mmap(tmp, struct(uint8(), int8(), int16(), int32(), real32(), real64()))
 length(m) # only 3 'struct' elements
 
 m[]
@@ -98,7 +101,10 @@ extractFUN(m) <- function(x,i,...) {
                    data.frame(u_int_8=x[[1]],
                                 int_8=x[[2]],
                                int_16=x[[3]],
-                               int_32=x[[4]])
+                               int_32=x[[4]],
+                               float_32=x[[5]],
+                               real_64=x[[6]]
+                             )
                  }
 m[1:2]
 munmap(m)

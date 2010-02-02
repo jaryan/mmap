@@ -31,11 +31,11 @@ uint32 <- C_uint <- function(length=0) {
 }
 
 real32 <- C_float <- function(length=0) { 
-  structure(double(length),  bytes=4L, class=c("Ctype","float"))
+  structure(double(length),  bytes=4L, signed=1L, class=c("Ctype","float"))
 }
 
 real64 <- C_double <- function(length=0) { 
-  structure(double(length),  bytes=8L, class=c("Ctype","double"))
+  structure(double(length),  bytes=8L, signed=1L, class=c("Ctype","double"))
 }
 
 struct <- as.list.Ctype <- function(...) {

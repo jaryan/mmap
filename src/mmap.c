@@ -213,8 +213,9 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   int fieldSigned;
   int offset;
   SEXP vec_dat;  /* need all R types supported: INT/REAL/CPLX/RAW */
-  PROTECT(vec_dat = allocVector(INTSXP, LEN)); P++;
-  int *int_vec_dat = INTEGER(vec_dat);
+  //PROTECT(vec_dat = allocVector(INTSXP, LEN)); P++;
+  int *int_vec_dat; // = INTEGER(vec_dat);
+  double *real_vec_dat;
 
   switch(mode) {
   case INTSXP: /* {{{ */
@@ -379,10 +380,31 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
             }
             break;
           }
-          SET_VECTOR_ELT(dat, v, (vec_dat));
+          SET_VECTOR_ELT(dat, v, vec_dat);
           UNPROTECT(1);
           break;
         case REALSXP:
+          PROTECT(vec_dat = allocVector(REALSXP, LEN));
+          real_vec_dat = REAL(vec_dat);
+          switch(fieldCbytes) {
+            case sizeof(float): /* 4 byte */
+            for(ii=0; ii<LEN; ii++) {
+              memcpy(float_buf, 
+                     &(byte_buf[ii*Cbytes+offset]),
+                     sizeof(char)*sizeof(float));
+              real_vec_dat[ii] = (double)(float)*(float *)(float_buf); 
+            }
+            break;
+            case sizeof(double): /* 8 byte */
+            for(ii=0; ii<LEN; ii++) {
+              memcpy(real_buf, 
+                     &(byte_buf[ii*Cbytes+offset]),
+                     sizeof(char)*sizeof(double));
+              real_vec_dat[ii] = (double)*(double *)(real_buf); 
+            }
+          }
+          SET_VECTOR_ELT(dat, v, vec_dat);
+          UNPROTECT(1);
           break;
       }
     }
