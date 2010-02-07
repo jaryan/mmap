@@ -1,4 +1,4 @@
-%\VignetterIndexEntry{mmap: Memory Mapped Files}
+%\VignetteIndexEntry{mmap: Memory Mapped Files}
 \documentclass{article}
 \usepackage{hyperref}
 \hypersetup{colorlinks,%

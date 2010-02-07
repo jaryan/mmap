@@ -176,11 +176,14 @@ Rprintf("offset: %i\n",(ival/pagesize)*pagesize);
 
 /* {{{ mmap_extract */
 SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
+/*SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {*/
   int v, b, i, ii, ival;
   int P=0;
   unsigned char *data; /* unsigned int and values */
   char *int_buf[sizeof(int)], *real_buf[sizeof(double)];
+  char *complex_buf[sizeof(Rcomplex)];
   char *short_buf[sizeof(short)], *float_buf[sizeof(float)];
+
   PROTECT(index = coerceVector(index,INTSXP)); P++;
   int byteLEN, LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
@@ -191,13 +194,14 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   SEXP byteBuf;
   int *int_dat;
   double *real_dat;
+  Rcomplex *complex_dat;
   unsigned char *raw_dat;
 
   data = MMAP_DATA(mmap_obj);
   if(data == NULL)
     error("invalid mmap pointer");
 
-  SEXP dat;
+  SEXP dat; /* dat is either a column, or list of columns */
   if(mode==VECSXP) {
     PROTECT(dat = allocVector(VECSXP, length(MMAP_SMODE(mmap_obj))));
   } else PROTECT(dat = allocVector(mode,LEN));
@@ -212,10 +216,11 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   int fieldCbytes;
   int fieldSigned;
   int offset;
+
   SEXP vec_dat;  /* need all R types supported: INT/REAL/CPLX/RAW */
-  //PROTECT(vec_dat = allocVector(INTSXP, LEN)); P++;
-  int *int_vec_dat; // = INTEGER(vec_dat);
+  int *int_vec_dat; 
   double *real_vec_dat;
+  double *imag_vec_dat;
 
   switch(mode) {
   case INTSXP: /* {{{ */
@@ -308,6 +313,19 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
         break;
     }
     break; /* }}} */
+  case CPLXSXP: /* {{{ */
+    complex_dat = COMPLEX(dat);
+    upper_bound = (long)(MMAP_SIZE(mmap_obj)-Cbytes);
+    for(i=0;  i < LEN; i++) {
+      ival = (index_p[i]-1);
+      if( ival > upper_bound || ival < 0 )
+        error("'i=%i' out of bounds", index_p[i]);
+      memcpy(complex_buf, 
+             &(data[(index_p[i]-1)*sizeof(Rcomplex)]), 
+             sizeof(char)*sizeof(Rcomplex));
+      complex_dat[i] = (Rcomplex)*(Rcomplex *)(complex_buf); 
+    }
+    break; /* }}} */
   case RAWSXP: /* {{{ */
     raw_dat = RAW(dat);
     upper_bound = (int)(MMAP_SIZE(mmap_obj)-1);
@@ -318,7 +336,7 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
       raw_dat[i] = data[(index_p[i]-1)];
     }
     break; /* }}} */
-  case VECSXP:  /* corresponds to C struct for mmap package */
+  case VECSXP:  /* corresponds to C struct for mmap package {{{ */
     PROTECT(byteBuf = allocVector(RAWSXP,LEN*Cbytes)); P++;
     byte_buf = RAW(byteBuf);
     /* extract_struct:
@@ -407,7 +425,7 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
           UNPROTECT(1);
           break;
       }
-    }
+    } /* }}} */
     break;
   default:
     error("unsupported type");

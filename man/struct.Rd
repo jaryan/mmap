@@ -91,11 +91,11 @@ close(f)
 
 m <- mmap(tmp, struct(uint8(), int8(), int16(), int32(), real32(), real64()))
 length(m) # only 3 'struct' elements
-
-m[]
+str(m[])
 
 m[1:2]
 
+# add a post-processing function to convert to a data.frame
 extractFUN(m) <- function(x,i,...) {
                    x <- x[i]
                    data.frame(u_int_8=x[[1]],

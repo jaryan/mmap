@@ -38,6 +38,10 @@ real64 <- C_double <- function(length=0) {
   structure(double(length),  bytes=8L, signed=1L, class=c("Ctype","double"))
 }
 
+cplx <- C_complex <- function(length=0) {
+  structure(complex(length),  bytes=16L, signed=1L, class=c("Ctype","complex"))
+}
+
 struct <- as.list.Ctype <- function(...) {
   dots <- list(...)
   bytes <- sapply(dots, attr, which="bytes")
