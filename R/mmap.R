@@ -68,7 +68,7 @@ mmap <- function(file, mode=int32(),
     if(missing(file))
       stop("'file' must be specified")
     mmap_obj <- .Call("mmap_mmap", 
-                      mode,
+                      as.Ctype(mode),
                       file,
                       as.integer(prot), 
                       as.integer(flags), PKG="mmap")

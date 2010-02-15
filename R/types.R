@@ -1,4 +1,22 @@
 # C_types
+as.Ctype <- function(x) {
+  UseMethod("as.Ctype")
+}
+
+as.Ctype.Ctype <- function(x) return(x)
+
+as.Ctype.integer <- function(x) {
+  int32(length(x))
+}
+as.Ctype.double <- function(x) {
+  real64(length(x))
+}
+as.Ctype.raw <- function(x) {
+  char(length(x))
+}
+as.Ctype.character <- function(x) {
+  uint8(length(x))
+}
 
 char <- C_raw <- function(length=0) {
   structure(integer(length), bytes=1L, signed=1L, class=c("Ctype","char"))
