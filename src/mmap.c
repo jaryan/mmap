@@ -57,7 +57,6 @@ int compareto (int *cmp, int *to) {
 
 /* mmap_mkFlags {{{ */
 SEXP mmap_mkFlags (SEXP _flags) {
-  SEXP flags;
   char *cur_string;
   int len_flags = length(_flags);
   int flags_bit = 0x0;
@@ -177,7 +176,7 @@ Rprintf("offset: %i\n",(ival/pagesize)*pagesize);
 /* {{{ mmap_extract */
 SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
 /*SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {*/
-  int v, b, i, ii, ival;
+  int v, i, ii, ival;
   int P=0;
   unsigned char *data; /* unsigned int and values */
   char *int_buf[sizeof(int)], *real_buf[sizeof(double)];
@@ -185,12 +184,12 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   char *short_buf[sizeof(short)], *float_buf[sizeof(float)];
 
   PROTECT(index = coerceVector(index,INTSXP)); P++;
-  int byteLEN, LEN = length(index);  
+  int LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
   int Cbytes = MMAP_CBYTES(mmap_obj);
   int isSigned = MMAP_SIGNED(mmap_obj);
 
-  char *byte_buf;
+  unsigned char *byte_buf;
   SEXP byteBuf;
   int *int_dat;
   double *real_dat;
@@ -220,7 +219,6 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   SEXP vec_dat;  /* need all R types supported: INT/REAL/CPLX/RAW */
   int *int_vec_dat; 
   double *real_vec_dat;
-  double *imag_vec_dat;
 
   switch(mode) {
   case INTSXP: /* {{{ */
@@ -323,11 +321,13 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
       memcpy(complex_buf, 
              &(data[(index_p[i]-1)*sizeof(Rcomplex)]), 
              sizeof(char)*sizeof(Rcomplex));
-      complex_dat[i] = (Rcomplex)*(Rcomplex *)(complex_buf); 
+      //complex_dat[i] = (Rcomplex)*(Rcomplex *)(complex_buf); 
+      complex_dat[i] = *(Rcomplex *)(complex_buf); 
     }
     break; /* }}} */
   case RAWSXP: /* {{{ */
     raw_dat = RAW(dat);
+// differ in signess???
     upper_bound = (int)(MMAP_SIZE(mmap_obj)-1);
     for(i=0;  i < LEN; i++) {
       ival =  (index_p[i]-1);
@@ -435,14 +435,10 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   return dat;
 }/*}}}*/
 
-SEXP mmap_extract_struct(SEXP mmap_obj, SEXP index) {
-
-}
-
 /* mmap_replace {{{ */
 SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
   int i, upper_bound, ival;
-  char *data, *buf;
+  char *data;
   int LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
   int Cbytes = MMAP_CBYTES(mmap_obj);
@@ -545,7 +541,7 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
 
 /* {{{ mmap_compare */
 SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
-  int b, i, ival;
+  int i;
   char *data, *int_buf[sizeof(int)], *real_buf[sizeof(double)];
   long LEN;
   int mode = MMAP_MODE(mmap_obj); 
@@ -559,8 +555,8 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
      6  < */
   int cmp_how = INTEGER(compare_how)[0];
 
-  int *int_dat;
-  double *real_dat;
+  //int *int_dat;
+  //double *real_dat;
   int hits=0;
   int cmp_to = INTEGER(compare_to)[0];
 
@@ -639,7 +635,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
 /*{{{*/
 /* mmap_read_int {{{ */
 SEXP mmap_read_int (SEXP index, SEXP mmap_obj) {
-  int b, i, j, fd;
+  int i;
   char *data, *buf[sizeof(int)];
   int LEN = length(index);  
 
@@ -662,7 +658,7 @@ SEXP mmap_read_int (SEXP index, SEXP mmap_obj) {
 
 /* {{{ read_double_mmap */
 SEXP read_double_mmap (SEXP index) {
-  int b, i, j, fd;
+  int i,fd;
   char *data, *buf[sizeof(double)];
   int LEN = length(index);  
 
