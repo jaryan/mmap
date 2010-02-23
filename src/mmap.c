@@ -545,6 +545,10 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
   char *data, *int_buf[sizeof(int)], *real_buf[sizeof(double)];
   long LEN;
   int mode = MMAP_MODE(mmap_obj); 
+  SEXP result;
+  LEN = (long)(MMAP_SIZE(mmap_obj)/sizeof(int));  /* change to REAL */
+  PROTECT(result = allocVector(mode, LEN));
+  int *int_result = INTEGER(result);
 
   /* comp_how
      1  ==
@@ -571,42 +575,42 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
       for(i=0;  i < LEN; i++) {
         memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
         if(cmp_to == (int)*(int *)(int_buf)) 
-          hits++;
+          int_result[hits++] = i+1;
       }
     } else
     if(cmp_how==2) {
       for(i=0;  i < LEN; i++) {
         memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
         if(cmp_to != (int)*(int *)(int_buf)) 
-          hits++;
+          int_result[hits++] = i+1;
       }
     } else
     if(cmp_how==3) {
       for(i=0;  i < LEN; i++) {
         memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-        if(cmp_to >= (int)*(int *)(int_buf)) 
-          hits++;
+        if(cmp_to <= (int)*(int *)(int_buf)) 
+          int_result[hits++] = i+1;
       }
     } else
     if(cmp_how==4) {
       for(i=0;  i < LEN; i++) {
         memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-        if(cmp_to <= (int)*(int *)(int_buf)) 
-          hits++;
+        if(cmp_to >= (int)*(int *)(int_buf)) 
+          int_result[hits++] = i+1;
       }
     } else
     if(cmp_how==5) {
       for(i=0;  i < LEN; i++) {
         memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-        if(cmp_to >  (int)*(int *)(int_buf)) 
-          hits++;
+        if(cmp_to <  (int)*(int *)(int_buf)) 
+          int_result[hits++] = i+1;
       }
     } else
     if(cmp_how==6) {
       for(i=0;  i < LEN; i++) {
         memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-        if(cmp_to <  (int)*(int *)(int_buf)) 
-          hits++;
+        if(cmp_to >  (int)*(int *)(int_buf)) 
+          int_result[hits++] = i+1;
       }
     } 
     break;
@@ -624,6 +628,9 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     error("unsupported type");
     break;
   }
+  result = lengthgets(result, hits);
+  UNPROTECT(1);
+  return result;
   return ScalarInteger(hits);
 }/*}}}*/
 
