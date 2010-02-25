@@ -18,16 +18,21 @@ as.Ctype.character <- function(x) {
   uint8(length(x))
 }
 
-char <- C_raw <- function(length=0) {
-  structure(integer(length), bytes=1L, signed=1L, class=c("Ctype","char"))
+char <- C_raw <- C_char <- function(length=0) {
+  structure(raw(length), bytes=1L, signed=1L, class=c("Ctype","char"))
 }
 
-int8 <- C_char <- function(length=0) {
+uchar <- C_uchar <- function(length=0) {
+  # unsigned 1 byte char
+  structure(raw(length), bytes=1L, signed=0L, class=c("Ctype","uchar"))
+}
+
+int8 <- function(length=0) {
   # signed 1 byte int
   structure(integer(length), bytes=1L, signed=1L, class=c("Ctype","char"))
 }
 
-uint8 <- C_uchar <- function(length=0) {
+uint8 <- function(length=0) {
   # unsigned 1 byte int
   structure(integer(length), bytes=1L, signed=0L, class=c("Ctype","uchar"))
 }
