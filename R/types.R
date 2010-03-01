@@ -1,4 +1,9 @@
 # C_types
+sizeofCtypes <- function() {
+  structure(.Call("sizeof_Ctypes"), 
+            .Names=c("char","short","int","long","float","double"))
+}
+
 as.Ctype <- function(x) {
   UseMethod("as.Ctype")
 }

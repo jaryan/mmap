@@ -144,6 +144,9 @@ writeBin(1:100L, tmp)
 ints <- mmap(tmp, mode=int32()) 
 ints[1]
 ints[]
+ints[22]
+ints[21:23] <- c(0,0,0)
+ints[22]
 munmap(ints)
 
 # store Dates as 'int' on disk

@@ -111,7 +111,7 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot, SEXP _flags) {
   if(fd < 0)
     error("unable to open file");
   data = mmap((caddr_t)0, (int)st.st_size, INTEGER(_prot)[0], INTEGER(_flags)[0], fd, 0);
-  if(!data)
+  if(data == MAP_FAILED)
     error("unable to mmap file");
   
   SEXP mmap_obj;
@@ -450,8 +450,9 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
 
   int *int_value;
   double *real_value;
-    short short_value;
-    char char_value;
+  float float_value;
+  short short_value;
+  char char_value;
 
   PROTECT(value = coerceVector(value, mode)); P++;
   PROTECT(index = coerceVector(index, INTSXP) ); P++;
@@ -461,14 +462,13 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
     int_value = INTEGER(value);
     upper_bound = (int)(MMAP_SIZE(mmap_obj)-Cbytes);
     switch(Cbytes) {
-      case 1: /* 1 byte char */
+      case sizeof(char): /* 1 byte char */
       if(isSigned) {
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(char);
           if( ival > upper_bound || ival < 0 )
             error("'i=%i' out of bounds", index_p[i]);
           char_value = (char)(int_value[i]); 
-          //memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(int_value[i]), sizeof(short));
           memcpy(&(data[(index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
         }
       } else {
@@ -477,19 +477,17 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
           if( ival > upper_bound || ival < 0 )
             error("'i=%i' out of bounds", index_p[i]);
           char_value = (unsigned char)(int_value[i]); 
-          //memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(int_value[i]), sizeof(short));
           memcpy(&(data[(index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
         }
       }
       break;
-      case 2: /* 2 byte short */
+      case sizeof(short): /* 2 byte short */
       if(isSigned) {
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(short);
           if( ival > upper_bound || ival < 0 )
             error("'i=%i' out of bounds", index_p[i]);
           short_value = (short)(int_value[i]); 
-          //memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(int_value[i]), sizeof(short));
           memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(short_value), sizeof(short));
         }
       } else {
@@ -498,12 +496,11 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
           if( ival > upper_bound || ival < 0 )
             error("'i=%i' out of bounds", index_p[i]);
           short_value = (unsigned short)(int_value[i]); 
-          //memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(int_value[i]), sizeof(short));
           memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(short_value), sizeof(short));
         }
       }
       break;
-      case 4: /* 4 byte int */
+      case sizeof(int): /* 4 byte int */
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(int);
           if( ival > upper_bound || ival < 0 )
@@ -512,26 +509,33 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
         }
         break;
     }
-/*
-    for(i=0;  i < LEN; i++) {
-      ival =  (index_p[i]-1)*sizeof(int);
-      if( ival > upper_bound || ival < 0 )
-        error("'i=%i' out of bounds", i);
-      memcpy(&(data[(index_p[i]-1)*sizeof(int)]), &(int_value[i]), sizeof(int));
-    }
-*/
     break;
   case REALSXP:
     real_value = REAL(value);
-    upper_bound = (int)(MMAP_SIZE(mmap_obj)-sizeof(double));
-    for(i=0;  i < LEN; i++) {
-      ival =  (index_p[i]-1)*sizeof(int);
-      if( ival > upper_bound || ival < 0 )
-        error("'i=%i' out of bounds", i);
-      memcpy(&(data[(index_p[i]-1)*sizeof(double)]), &(real_value[i]), sizeof(double));
+    upper_bound = (int)(MMAP_SIZE(mmap_obj)-Cbytes);
+    switch(Cbytes) {
+      case sizeof(float): /* 4 byte float */
+      for(i=0;  i < LEN; i++) {
+        ival =  (index_p[i]-1)*sizeof(float);
+  /*Rprintf("ival: %i, upper_bound: %i, index_p[i]: %i\n", ival, upper_bound, index_p[i]);*/
+        if( ival > upper_bound || ival < 0 )
+          error("'i=%i' out of bounds", i);
+        float_value = (float)(real_value[i]);
+        memcpy(&(data[(index_p[i]-1)*sizeof(float)]), &(float_value), sizeof(float));
+      }
+      break;
+      case sizeof(double): /* 8 byte double */
+      for(i=0;  i < LEN; i++) {
+        ival =  (index_p[i]-1)*sizeof(double);
+        if( ival > upper_bound || ival < 0 )
+          error("'i=%i' out of bounds", i);
+        memcpy(&(data[(index_p[i]-1)*sizeof(double)]), &(real_value[i]), sizeof(double));
+      }
+      break;
     }
     break;
   default:
+    /* add support for CPLXSXP and VECSXP (R level structs) */
     error("unsupported type");
     break;
   }
