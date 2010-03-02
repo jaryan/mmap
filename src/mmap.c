@@ -552,15 +552,38 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
       switch(TYPEOF(VECTOR_ELT(MMAP_SMODE(mmap_obj),v))) {
         case INTSXP:
           LEN = length(VECTOR_ELT(value,v));
-          for(i=0; i < LEN; i++) {
-/*            Rprintf("i: %i, index_p[i]-1*sizeof(int)+offset: %i, offset: %i\n",
-                    i, (index_p[i]-1)*sizeof(int)+offset, offset);*/
-      //      ival =  (index_p[i]-1)*sizeof(int);
-      //      if( ival > upper_bound || ival < 0 )
-      //        error("'i=%i' out of bounds", i);
-            memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
-                   &(INTEGER(VECTOR_ELT(value,v))[i]),
-                   sizeof(int));
+          switch(fieldCbytes) {
+            case sizeof(short):
+            if(fieldSigned) {
+              for(i=0; i < LEN; i++) {
+                //int_valye = INTEGER(VECTOR_ELT(value,v))[i];
+                short_value = (short)(INTEGER(VECTOR_ELT(value,v))[i]);
+                memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
+                       &short_value,
+                       fieldCbytes);
+              }
+            } else {
+              for(i=0; i < LEN; i++) {
+                //int_valye = INTEGER(VECTOR_ELT(value,v))[i];
+                short_value = (unsigned short)(INTEGER(VECTOR_ELT(value,v))[i]);
+                memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
+                       &short_value,
+                       fieldCbytes);
+              }
+            }
+            break;
+            case sizeof(int):
+              for(i=0; i < LEN; i++) {
+    /*            Rprintf("i: %i, index_p[i]-1*sizeof(int)+offset: %i, offset: %i\n",
+                        i, (index_p[i]-1)*sizeof(int)+offset, offset);*/
+          //      ival =  (index_p[i]-1)*sizeof(int);
+          //      if( ival > upper_bound || ival < 0 )
+          //        error("'i=%i' out of bounds", i);
+                memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
+                       &(INTEGER(VECTOR_ELT(value,v))[i]),
+                       sizeof(int));
+              }
+            break;
           }
           break;
         case REALSXP:
