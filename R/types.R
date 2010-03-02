@@ -71,7 +71,7 @@ cplx <- C_complex <- function(length=0) {
 }
 
 struct <- as.list.Ctype <- function(...) {
-  dots <- list(...)
+  dots <- lapply(list(...),as.Ctype)
   bytes <- sapply(dots, attr, which="bytes")
   structure(dots, bytes=sum(bytes), offset=cumsum(bytes)-bytes,
             signed=NA, class=c("Ctype","struct"))

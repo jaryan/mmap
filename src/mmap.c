@@ -438,6 +438,7 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
 /* mmap_replace {{{ */
 SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
   int i, upper_bound, ival;
+  int v, offset, fieldCbytes, fieldSigned;
   char *data;
   int LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
@@ -454,7 +455,9 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
   short short_value;
   char char_value;
 
-  PROTECT(value = coerceVector(value, mode)); P++;
+  if(mode != VECSXP) {
+    PROTECT(value = coerceVector(value, mode)); P++;
+  }
   PROTECT(index = coerceVector(index, INTSXP) ); P++;
   int *index_p = INTEGER(index);
   switch(mode) {
@@ -533,6 +536,46 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
       }
       break;
     }
+    break;
+  case VECSXP:
+/*Rprintf("%i, %i\n", length(value), length(MMAP_SMODE(mmap_obj)));*/
+    if(length(value) != length(MMAP_SMODE(mmap_obj)))
+      error("size of struct and size of replacement value do not match");
+    for(v=0; v<length(MMAP_SMODE(mmap_obj)); v++) {
+      offset = MMAP_OFFSET(mmap_obj, v);  /* byte offset of column */
+      fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),
+                                      install("bytes")))[0];
+      fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),
+                                      install("signed")))[0];
+/*Rprintf("Cbytes: %i, fieldCbytes: %i, fieldSigned: %i\n",
+         Cbytes, fieldCbytes, fieldSigned); */
+      switch(TYPEOF(VECTOR_ELT(MMAP_SMODE(mmap_obj),v))) {
+        case INTSXP:
+          LEN = length(VECTOR_ELT(value,v));
+          for(i=0; i < LEN; i++) {
+/*            Rprintf("i: %i, index_p[i]-1*sizeof(int)+offset: %i, offset: %i\n",
+                    i, (index_p[i]-1)*sizeof(int)+offset, offset);*/
+      //      ival =  (index_p[i]-1)*sizeof(int);
+      //      if( ival > upper_bound || ival < 0 )
+      //        error("'i=%i' out of bounds", i);
+            memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
+                   &(INTEGER(VECTOR_ELT(value,v))[i]),
+                   sizeof(int));
+          }
+          break;
+        case REALSXP:
+          LEN = length(VECTOR_ELT(value,v));
+          for(i=0; i < LEN; i++) {
+            memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
+                   &(REAL(VECTOR_ELT(value,v))[i]),
+                   sizeof(double));
+          }
+          break;
+        default:
+          break;
+      }
+    }
+
     break;
   default:
     /* add support for CPLXSXP and VECSXP (R level structs) */
