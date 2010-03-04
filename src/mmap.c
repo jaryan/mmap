@@ -219,6 +219,7 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   SEXP vec_dat;  /* need all R types supported: INT/REAL/CPLX/RAW */
   int *int_vec_dat; 
   double *real_vec_dat;
+  Rcomplex *complex_vec_dat;
 
   switch(mode) {
   case INTSXP: /* {{{ */
@@ -350,12 +351,16 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
     */
     for(i=0; i<LEN; i++) {
       /* byte_buf (byteBuf) now has all bytes for all structs */
-      memcpy(&(byte_buf[i*Cbytes]), &(data[(index_p[i]-1) * Cbytes]), Cbytes); 
+      memcpy(&(byte_buf[i*Cbytes]),
+             &(data[(index_p[i]-1) * Cbytes]),
+             Cbytes); 
     }  
     for(v=0; v<length(MMAP_SMODE(mmap_obj)); v++) {
       offset = MMAP_OFFSET(mmap_obj,v);
-      fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),install("bytes")))[0];
-      fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),install("signed")))[0];
+      fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
+                                      v),install("bytes")))[0];
+      fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
+                                      v),install("signed")))[0];
       switch(TYPEOF(VECTOR_ELT(MMAP_SMODE(mmap_obj), v))) {
         case INTSXP:
           PROTECT(vec_dat = allocVector(INTSXP, LEN)); 
@@ -423,6 +428,21 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
           }
           SET_VECTOR_ELT(dat, v, vec_dat);
           UNPROTECT(1);
+          break;
+        case CPLXSXP:
+          PROTECT(vec_dat = allocVector(CPLXSXP, LEN));
+          complex_vec_dat = COMPLEX(vec_dat);
+          for(ii=0; ii<LEN; ii++) {
+            memcpy(complex_buf, 
+                   &(byte_buf[ii*Cbytes+offset]),
+                   sizeof(char)*sizeof(Rcomplex));
+            complex_vec_dat[ii] = *(Rcomplex *)(complex_buf); 
+          }
+          SET_VECTOR_ELT(dat, v, vec_dat);
+          UNPROTECT(1);
+          break;
+        default:
+          error("unimplemented type");
           break;
       }
     } /* }}} */

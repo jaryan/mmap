@@ -24,6 +24,7 @@ uint16(length = 0)
 int32(length = 0)
 real32(length = 0)
 real64(length = 0)
+cplx(length = 0)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -124,5 +125,4 @@ unlink(tmp)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
+\keyword{ IO  }
