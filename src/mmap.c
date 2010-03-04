@@ -547,16 +547,16 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
                                       install("bytes")))[0];
       fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),
                                       install("signed")))[0];
-/*Rprintf("Cbytes: %i, fieldCbytes: %i, fieldSigned: %i\n",
-         Cbytes, fieldCbytes, fieldSigned); */
       switch(TYPEOF(VECTOR_ELT(MMAP_SMODE(mmap_obj),v))) {
+        case NILSXP:  /* skip columns that are not being updated (list elem == NULL) */
+          break;
         case INTSXP:
           LEN = length(VECTOR_ELT(value,v));
+          int_value = INTEGER(VECTOR_ELT(value, v));
           switch(fieldCbytes) {
             case sizeof(short):
             if(fieldSigned) {
               for(i=0; i < LEN; i++) {
-                //int_valye = INTEGER(VECTOR_ELT(value,v))[i];
                 short_value = (short)(INTEGER(VECTOR_ELT(value,v))[i]);
                 memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
                        &short_value,
@@ -579,8 +579,13 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
           //      ival =  (index_p[i]-1)*sizeof(int);
           //      if( ival > upper_bound || ival < 0 )
           //        error("'i=%i' out of bounds", i);
+                /*
                 memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
                        &(INTEGER(VECTOR_ELT(value,v))[i]),
+                       sizeof(int));
+                */
+                memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
+                       &(int_value[i]),
                        sizeof(int));
               }
             break;
