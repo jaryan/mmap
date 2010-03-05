@@ -116,11 +116,11 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot, SEXP _flags) {
   
   SEXP mmap_obj;
   PROTECT(mmap_obj = allocVector(VECSXP,5));
-  SET_VECTOR_ELT(mmap_obj, 0, R_MakeExternalPtr(data,NULL,NULL));           /* data pointer    */
-  SET_VECTOR_ELT(mmap_obj, 1, ScalarInteger((int)st.st_size));              /* size in bytes   */
-  SET_VECTOR_ELT(mmap_obj, 2, ScalarInteger(fd));                           /* file descriptor */
-  SET_VECTOR_ELT(mmap_obj, 3, _type);                                       /* storage mode    */
-  SET_VECTOR_ELT(mmap_obj, 4, ScalarReal((double)sysconf(_SC_PAGE_SIZE)));  /* page size       */
+  SET_VECTOR_ELT(mmap_obj, 0, R_MakeExternalPtr(data,R_NilValue,R_NilValue));/* data pointer    */
+  SET_VECTOR_ELT(mmap_obj, 1, ScalarInteger((int)st.st_size));               /* size in bytes   */
+  SET_VECTOR_ELT(mmap_obj, 2, ScalarInteger(fd));                            /* file descriptor */
+  SET_VECTOR_ELT(mmap_obj, 3, _type);                                        /* storage mode    */
+  SET_VECTOR_ELT(mmap_obj, 4, ScalarReal((double)sysconf(_SC_PAGE_SIZE)));   /* page size       */
   UNPROTECT(1);
   /* need to register a finalizer to munmap in case GC'd */
   return(mmap_obj);
