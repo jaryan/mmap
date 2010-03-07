@@ -126,6 +126,15 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot, SEXP _flags) {
   return(mmap_obj);
 } /*}}}*/
 
+/* mmap_is_mmapped {{{ */
+SEXP mmap_is_mmapped (SEXP mmap_obj) {
+  char *data = MMAP_DATA(mmap_obj);
+  if(data == NULL)
+    return(ScalarLogical(0));
+
+  return(ScalarLogical(1));
+} /*}}}*/
+
 /* mmap_munmap {{{ */
 SEXP mmap_munmap (SEXP mmap_obj) {
   char *data = MMAP_DATA(mmap_obj);

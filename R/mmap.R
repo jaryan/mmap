@@ -34,13 +34,30 @@ tail.mmap <- function(x, n=6L, ...) {
   x[(length(x)-n):length(x)]
 }
 str.mmap <- function(object, ...) { 
-  cat("mmap object of length",length(object),":\n")
-  print(head(object))
+  cat("  ",print(object))
   str(unclass(object)) 
 }
 summary.mmap <- function(object) { str(unclass(object)) }
+
 print.mmap <- function(x, ...) {
-  cat(paste("<mmap object ",names(x$filedesc),">\n",sep="")) 
+  stopifnot(is.mmap(x))
+  file_name <- names(x$filedesc)
+  if(nchar(file_name) > 10)
+    file_name <- paste(substring(file_name,0,10),"...",sep="")
+  type_name <- switch(typeof(x$storage.mode),
+                      "integer"="int",
+                      "double"="num",
+                      "complex"="cplx",
+                      "character"="chr",
+                      "raw"="raw")
+  firstN <- x[1:min(6,length(x))]
+  firstN <- if(cumsum(nchar(firstN))[length(firstN)] > 20) {
+                firstN[1:min(3,length(x))]
+              } else {
+                firstN
+              }
+  cat(paste("<mmap:",file_name,">  (",class(x$storage.mode)[2],") ",
+            type_name," [1:", length(x),"]",sep=""),firstN,"...\n")
 }
 print.summary_mmap <- function() {}
 
@@ -106,7 +123,7 @@ mprotect <- function(x, i, prot) {
 }
 
 is.mmap <- function(x) {
-  inherits(x, "mmap")
+  inherits(x, "mmap") && .Call("mmap_is_mmapped",x,PKG="mmap")
 }
 
 `[.mmap` <- function(x, i, ...) {
@@ -139,4 +156,43 @@ length.mmap <- function(x) {
   size_in_bytes <- x[[2]]
   size <- attr(x$storage.mode,"bytes")
   as.integer(size_in_bytes/size)
+}
+
+
+# coerce to disk object and mmap back in.  Need
+# to register a proper finalizer in the C code, else
+# we are likely to end up with memory leaks.  For now
+# this is not too probable, and not too dangerous.
+# Famous last words ...
+
+as.mmap <- function(x, mode, file,...) {
+  UseMethod("as.mmap")
+}
+as.mmap.integer <- function(x,
+                            mode=integer(),
+                            file=tempmmap(),
+                            ...) {
+  nbytes <- attr(as.Ctype(mode),"bytes")
+  writeBin(x, file, size=nbytes)
+  mmap(file, as.Ctype(mode))
+}
+as.mmap.double <- function(x,
+                            mode=double(),
+                            file=tempmmap(),
+                            ...) {
+  nbytes <- attr(as.Ctype(mode),"bytes")
+  writeBin(x, file, size=nbytes)
+  mmap(file, as.Ctype(mode))
+}
+as.mmap.complex <- function(x,
+                            mode=complex(),
+                            file=tempmmap(),
+                            ...) {
+  nbytes <- attr(as.Ctype(mode),"bytes")
+  writeBin(x, file, size=nbytes)
+  mmap(file, as.Ctype(mode))
+}
+
+tempmmap <- function(tmpdir=tempdir()) {
+  tempfile("mmap",tmpdir)
 }

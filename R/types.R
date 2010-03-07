@@ -77,3 +77,12 @@ struct <- as.list.Ctype <- function(...) {
             signed=NA, class=c("Ctype","struct"))
 }
 
+print.Ctype <- function(x, ...) {
+  if(class(x)[2] == "struct") {
+
+  } else {
+    cat(paste("(",class(x)[2],")",sep=""),
+        paste(typeof(x),"(0)",sep=""),"\n")
+  }
+}
+

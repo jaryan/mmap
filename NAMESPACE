@@ -10,6 +10,9 @@ export(
        mmapFlags,
 
        is.mmap,
+       as.mmap,
+
+       tempmmap,
 
        extractFUN,
        "extractFUN<-",
@@ -42,6 +45,10 @@ S3method(print,mmap)
 S3method(length, mmap)
 #S3method(head,mmap)
 #S3method(tail,mmap)
+
+S3method(as.mmap, integer)
+S3method(as.mmap, double)
+S3method(as.mmap, complex)
 
 # methods to handle conversion to internal Ctype
 S3method(as.Ctype, Ctype)
