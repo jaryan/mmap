@@ -62,6 +62,9 @@ S3method(as.Ctype, double)
 S3method(as.Ctype, integer)
 S3method(as.Ctype, raw)
 
+S3method(nbytes, Ctype)
+S3method(nbytes, mmap)
+
 S3method(print, Ctype)
 
 S3method(as.list, Ctype)

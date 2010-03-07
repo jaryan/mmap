@@ -126,4 +126,7 @@ as.struct.default <- function(x) {
   do.call(struct, types)
 }
 
-nbytes <- function(x) attr(x, "bytes")
+nbytes <- function(x) UseMethod("nbytes")
+
+nbytes.Ctype <- function(x) attr(x, "bytes")
+nbytes.mmap <- function(x) x$bytes
