@@ -23,8 +23,10 @@ export(
              uint8, uint16,
        cplx,
        struct,
+       as.struct,
 
-       as.Ctype
+       as.Ctype,
+       nbytes
       )
 
 # S3 methods
@@ -51,6 +53,8 @@ S3method(as.mmap, double)
 S3method(as.mmap, integer)
 
 # methods to handle conversion to internal Ctype
+S3method("[[<-", struct)
+S3method(as.struct, default)
 S3method(as.Ctype, Ctype)
 S3method(as.Ctype, character)
 S3method(as.Ctype, complex)
@@ -58,5 +62,6 @@ S3method(as.Ctype, double)
 S3method(as.Ctype, integer)
 S3method(as.Ctype, raw)
 
+S3method(print, Ctype)
 
 S3method(as.list, Ctype)

@@ -168,6 +168,9 @@ length.mmap <- function(x) {
 as.mmap <- function(x, mode, file,...) {
   UseMethod("as.mmap")
 }
+
+#as.mmap.data.frame <- function(x, mode=as.struct(x), file, ...) 
+
 as.mmap.integer <- function(x,
                             mode=integer(),
                             file=tempmmap(),

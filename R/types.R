@@ -80,12 +80,50 @@ struct <- as.list.Ctype <- function(...) {
             signed=NA, class=c("Ctype","struct"))
 }
 
+`[[<-.struct` <- function(x,i,value) {
+  x <- unclass(x)
+  x[[i]] <- as.Ctype(value)
+  do.call(struct,x)
+}
+
 print.Ctype <- function(x, ...) {
   if(class(x)[2] == "struct") {
-
+    cat("struct:\n")
+    for(i in 1:length(x)) {
+    cat(paste("  (",class(x[[i]])[2],") ",sep=""))
+    attributes(x[[i]]) <- NULL
+    if(length(x[[i]])==0)
+      cat(paste(typeof(x[[i]]),"(0)\n",sep=""))
+    else
+    cat(x[[i]],"\n")
+    }
   } else {
-    cat(paste("(",class(x)[2],")",sep=""),
-        paste(typeof(x),"(0)",sep=""),"\n")
+    cat(paste("(",class(x)[2],") ",sep=""))
+    attributes(x) <- NULL
+    if(length(x)==0)
+      cat(paste(typeof(x),"(0)\n",sep=""))
+    else
+    cat(x,"\n")
   }
 }
 
+as.struct <- function(x, ...) {
+  UseMethod("as.struct")
+}
+
+as.struct.default <- function(x) {
+  if(inherits(x,"struct"))
+    return(x)
+  x <- as.list(x)
+  types <- lapply(lapply(x,class), 
+             function(CLASS) switch(CLASS,
+                             "raw"=char(),
+                             "integer"=int32(),
+                             "numeric"=,
+                             "double"=real64(),
+                             "complex"=cplx())
+            )
+  do.call(struct, types)
+}
+
+nbytes <- function(x) attr(x, "bytes")
