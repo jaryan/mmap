@@ -22,6 +22,9 @@ as.Ctype.raw <- function(x) {
 as.Ctype.character <- function(x) {
   uint8(length(x))
 }
+as.Ctype.complex <- function(x) {
+  cplx(length(x))
+}
 
 char <- C_raw <- C_char <- function(length=0) {
   structure(raw(length), bytes=1L, signed=1L, class=c("Ctype","char"))
