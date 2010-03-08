@@ -6,6 +6,7 @@
 \alias{replaceFUN}
 \alias{replaceFUN<-}
 \alias{is.mmap}
+\alias{as.mmap}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Map And Unmap Pages of Memory
@@ -19,8 +20,10 @@ mmap(file, mode = int32(),
      prot=mmapFlags("PROT_READ","PROT_WRITE"),
      flags=mmapFlags("MAP_SHARED"),
      ...)
+
 munmap(x)
 
+as.mmap(x, mode, file, ...)
 is.mmap(x)
 
 extractFUN(x)
@@ -42,7 +45,9 @@ mode of data on disk. Use one of
 \sQuote{uint16()} (unsigned short <-> \R integer),
 \sQuote{int32()} (\R integer),
 \sQuote{real32()} (\R double),
-\sQuote{real64()} (\R double).
+\sQuote{real64()} (\R double),
+\sQuote{cplx()} (\R complex),
+\sQuote{struct()} (Collection of Ctypes as defined by mmap).
 See the related functions for details.
 }
   \item{extractFUN}{
@@ -91,9 +96,33 @@ exception is the use of \code{file} in place of
 the interface at present, so the entire object is
 currently mapped into memory.  This may change in
 future releases.
+
+\code{as.mmap} allows for in-memory objects to be
+converted to mmapped version on-disk.  The files are
+stored in the location specified by \code{file}.
+Passing an object that has an appropriate
+as.mmap method will allow \R objects to be automatically
+created as memory-mapped object.  Additional methods
+may be defined to support complex data objects.
+
+All mode types are defined for single-column atomic
+data, with the exception of structs.  Multiple column
+objects are not explicitely supported, instead a mapping
+should be made for each column of the original object.
+Future versions will likely abstract this to allow for
+single columns per file, but the resultant mmap object
+in \R will hide the underlying seperation.
+
+Using \code{struct} as the mode will organize the
+binary data on-disk (or read data organized on disk) in
+a row-major orientation.  This is similar to how a row
+database would be oriented, and will provide faster
+access to data that is typically viewed together.
+See \code{help(struct)} for examples of semantics as well
+as performance.
 }
 \value{
-The mmap call
+The mmap and as.mmap call
 returns an object of class \code{mmap} containing
 the fields: 
 \describe{
@@ -136,25 +165,26 @@ See Also as \code{\link{mmapFlags}},
 }
 \examples{
 
-#create a binary file
+# create a binary file and map into 'ints' object
+# Note that we are creating a file of 1 byte integers,
+# and that the conversion is handled transparently
 tmp <- tempfile()
-writeBin(1:100L, tmp)
+ints <- as.mmap(1:100L, mode=int8(), file=tmp)
 
-# map into memory (default mode=integer())
-ints <- mmap(tmp, mode=int32()) 
 ints[1]
 ints[]
 ints[22]
 ints[21:23] <- c(0,0,0)
-ints[22]
+ints[]  # changes are now on disk
 munmap(ints)
 
-# store Dates as 'int' on disk
+# store Dates as natural-size 'int' on disk
+writeBin(as.integer(Sys.Date()+1:10), tmp)
 DATE <- mmap(tmp,extractFUN=function(x) structure(x,class="Date"))
 DATE[]
 munmap(DATE)
 
-# store 2 decimal numeric as 'int' on disk
+# store 2 decimal numeric as 'int' on disk, and convert on extraction
 num <- mmap(tmp,extractFUN=function(x) x/100)
 num[]
 munmap(num)
