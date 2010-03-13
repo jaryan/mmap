@@ -53,6 +53,14 @@ uint16 <- C_ushort <- function(length=0) {
   structure(integer(length), bytes=2L, signed=0L, class=c("Ctype","ushort"))
 }
 
+int24 <- C_int24 <- function(length=0) {
+  structure(integer(length), bytes=3L, signed=1L, class=c("Ctype","int24"))
+}
+
+uint24 <- C_uint24 <- function(length=0) {
+  structure(integer(length), bytes=3L, signed=0L, class=c("Ctype","uint24"))
+}
+
 int32 <- C_int <- function(length=0) {
   structure(integer(length), bytes=4L, signed=1L, class=c("Ctype","int"))
 }

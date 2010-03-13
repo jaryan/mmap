@@ -5,6 +5,8 @@
 \alias{uint8}
 \alias{int16}
 \alias{uint16}
+\alias{int24}
+\alias{uint24}
 \alias{int32}
 \alias{real32}
 \alias{real64}
@@ -21,6 +23,8 @@ int8(length = 0)
 uint8(length = 0)
 int16(length = 0)
 uint16(length = 0)
+int24(length = 0)
+uint24(length = 0)
 int32(length = 0)
 real32(length = 0)
 real64(length = 0)

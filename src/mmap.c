@@ -188,6 +188,10 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   int v, i, ii, ival;
   int P=0;
   unsigned char *data; /* unsigned int and values */
+  char *int24_buf[4];  /* 3 byte int */
+  char *uint24_buf[4];  /* 3 byte int */
+  memset(int24_buf, 0, 4);
+  memset(uint24_buf, 0xFF, 4);
   char *int_buf[sizeof(int)], *real_buf[sizeof(double)];
   char *complex_buf[sizeof(Rcomplex)];
   char *short_buf[sizeof(short)], *float_buf[sizeof(float)];
@@ -273,6 +277,37 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
                  sizeof(char)*sizeof(short));
           int_dat[i] = (int)(unsigned short)*(unsigned short *)(short_buf); 
         }  
+        }
+        break;
+      case 3: /* 3 byte int */
+        if(isSigned) {
+        for(i=0;  i < LEN; i++) {
+          ival =  (index_p[i]-1)*3;
+          /* reset int_but to 0xFFFF IFF int > 8388607 */
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          memcpy(int24_buf, 
+                 &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
+                 3);
+          int_dat[i] = (int)*(int *)(int24_buf); 
+          if(int_dat[i] > 8388607) {
+          memcpy(uint24_buf, 
+                 &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
+                 3);
+          }
+          int_dat[i] = (int)*(int *)(uint24_buf); 
+        }
+        } else {
+        for(i=0;  i < LEN; i++) {
+          ival =  (index_p[i]-1)*3;
+          /* reset int_but to 0 0 0 0 */
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          memcpy(int24_buf, 
+                 &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
+                 3);
+          int_dat[i] = (int)*(int *)(int24_buf); 
+        }
         }
         break;
       case 4: /* 4 byte int */
