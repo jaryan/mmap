@@ -679,16 +679,29 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
           break;
         case REALSXP:
           LEN = length(VECTOR_ELT(value,v));
-          for(i=0; i < LEN; i++) {
-            memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
-                   &(REAL(VECTOR_ELT(value,v))[i]),
-                   sizeof(double));
+          switch(fieldCbytes) {
+            case sizeof(float):
+            for(i=0; i < LEN; i++) {
+              float_value = (float)(REAL(VECTOR_ELT(value,v))[i]);
+              memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
+                     &float_value,
+                     sizeof(float));
+            }
+            break;
+          case sizeof(double):
+            for(i=0; i < LEN; i++) {
+              memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
+                     &(REAL(VECTOR_ELT(value,v))[i]),
+                     sizeof(double));
+            }
+            break;
           }
           break;
         default:
           break;
       }
     } /* VECSXP }}} */
+    break;
   case STRSXP:
     for(i=0; i < LEN; i++) {
       memcpy(&(data[(index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes);

@@ -22,6 +22,8 @@ export(
        char, int8,  int16,  int24,  int32,  real32,  real64,
              uint8, uint16, uint24,
        cplx,
+       as.char, as.int8, as.uint8, as.int16, as.uint16, as.int24,
+
        struct,
        as.struct,
 
@@ -61,6 +63,12 @@ S3method(as.Ctype, complex)
 S3method(as.Ctype, double)
 S3method(as.Ctype, integer)
 S3method(as.Ctype, raw)
+S3method(as.char, mmap)
+S3method(as.int8, mmap)
+S3method(as.uint8, mmap)
+S3method(as.int16, mmap)
+S3method(as.uint16, mmap)
+S3method(as.int24, mmap)
 
 S3method(nbytes, Ctype)
 S3method(nbytes, mmap)

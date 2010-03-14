@@ -31,31 +31,64 @@ char <- C_char <- function(length=0) {
             class=c("Ctype","char"))
 }
 
+as.char <- function(x, ...) UseMethod("as.char")
+as.char.mmap <- function(x, length) {
+  x$storage.mode <- char(length)
+  x 
+}
+
 uchar <- C_uchar <- function(length=0) {
   # unsigned 1 byte char
   structure(raw(length), bytes=1L, signed=0L, class=c("Ctype","uchar"))
 }
 
+as.uchar <- function(x, ...) UseMethod("as.uchar")
+
 int8 <- function(length=0) {
   # signed 1 byte int
   structure(integer(length), bytes=1L, signed=1L, class=c("Ctype","char"))
+}
+as.int8 <- function(x, length, ...) UseMethod("as.int8")
+as.int8.mmap <- function(x, length=0) {
+  x$storage.mode <- int8(length)
+  x
 }
 
 uint8 <- function(length=0) {
   # unsigned 1 byte int
   structure(integer(length), bytes=1L, signed=0L, class=c("Ctype","uchar"))
 }
+as.uint8 <- function(x, length, ...) UseMethod("as.uint8")
+as.uint8.mmap <- function(x, length=0) {
+  x$storage.mode <- uint8(length)
+  x
+}
 
 int16 <- C_short <- function(length=0) {
   structure(integer(length), bytes=2L, signed=1L, class=c("Ctype","short"))
+}
+as.int16 <- function(x, length, ...) UseMethod("as.int16")
+as.int16.mmap <- function(x, length=0) {
+  x$storage.mode <- int16(length)
+  x
 }
 
 uint16 <- C_ushort <- function(length=0) {
   structure(integer(length), bytes=2L, signed=0L, class=c("Ctype","ushort"))
 }
+as.uint16 <- function(x, length, ...) UseMethod("as.uint16")
+as.uint16.mmap <- function(x, length=0) {
+  x$storage.mode <- uint16(length)
+  x
+}
 
 int24 <- C_int24 <- function(length=0) {
   structure(integer(length), bytes=3L, signed=1L, class=c("Ctype","int24"))
+}
+as.int24 <- function(x, length, ...) UseMethod("as.int24")
+as.int24.mmap <- function(x, length=0) {
+  x$storage.mode <- int24(length)
+  x
 }
 
 uint24 <- C_uint24 <- function(length=0) {
