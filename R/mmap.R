@@ -176,7 +176,9 @@ as.mmap.integer <- function(x,
                             file=tempmmap(),
                             ...) {
   nbytes <- attr(as.Ctype(mode),"bytes")
-  writeBin(x, file, size=nbytes)
+  if(nbytes == 3) {
+    writeBin(writeBin(x,raw())[1:(length(x)*4) %% 4 != 0], file)
+  } else writeBin(x, file, size=nbytes)
   mmap(file, as.Ctype(mode))
 }
 as.mmap.double <- function(x,

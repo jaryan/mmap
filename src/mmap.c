@@ -295,11 +295,11 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
                  3);
           int_dat[i] = (int)*(int *)(int24_buf); 
           if(int_dat[i] > 8388607) {  /* MAX 3 byte unsigned INTEGER */
-          memcpy(uint24_buf, 
-                 &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
-                 3);
+            memcpy(uint24_buf, 
+                   &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
+                   3);
+            int_dat[i] = (int)*(int *)(uint24_buf); 
           }
-          int_dat[i] = (int)*(int *)(uint24_buf); 
         }
         } else { /* 3 byte unsigned */
         for(i=0;  i < LEN; i++) {
@@ -375,6 +375,7 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
     }
     break; /* }}} */
   case STRSXP: /* {{{ */
+    /* see https://svn.r-project.org/R/trunk/src/main/raw.c */
     for(i=0; i < LEN; i++) {
       SET_STRING_ELT(dat, i,
         mkCharLenCE((const char *)&(data[(index_p[i]-1)*Cbytes]),
@@ -536,11 +537,12 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
   PROTECT(index = coerceVector(index, INTSXP) ); P++;
   int *index_p = INTEGER(index);
   switch(mode) {
-  case INTSXP:
+  case INTSXP: /* {{{ */
     int_value = INTEGER(value);
     upper_bound = (int)(MMAP_SIZE(mmap_obj)-Cbytes);
     switch(Cbytes) {
       case sizeof(char): /* 1 byte char */
+      /*
       if(isSigned) {
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(char);
@@ -550,6 +552,7 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
           memcpy(&(data[(index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
         }
       } else {
+      */
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(char);
           if( ival > upper_bound || ival < 0 )
@@ -557,9 +560,10 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
           char_value = (unsigned char)(int_value[i]); 
           memcpy(&(data[(index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
         }
-      }
+      /*}*/
       break;
       case sizeof(short): /* 2 byte short */
+      /*
       if(isSigned) {
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(short);
@@ -569,6 +573,7 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
           memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(short_value), sizeof(short));
         }
       } else {
+      */
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(short);
           if( ival > upper_bound || ival < 0 )
@@ -576,7 +581,26 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
           short_value = (unsigned short)(int_value[i]); 
           memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(short_value), sizeof(short));
         }
+      /*}*/
+      break;
+      case 3: /* case 3 byte */
+      /*
+      if(isSigned) {
+        for(i=0;  i < LEN; i++) {
+          ival = (index_p[i]-1)*3;
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          memcpy(&(data[(index_p[i]-1)*3]), &(int_value[i]), 3);
+        }
+      } else {
+      */
+      for(i=0;  i < LEN; i++) {
+        ival = (index_p[i]-1)*3;
+        if( ival > upper_bound || ival < 0 )
+          error("'i=%i' out of bounds", index_p[i]);
+        memcpy(&(data[(index_p[i]-1)*3]), &(int_value[i]), 3);
       }
+      /*}*/
       break;
       case sizeof(int): /* 4 byte int */
         for(i=0;  i < LEN; i++) {
@@ -587,15 +611,14 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
         }
         break;
     }
-    break;
-  case REALSXP:
+    break; /* }}} */
+  case REALSXP: /* {{{ */
     real_value = REAL(value);
     upper_bound = (int)(MMAP_SIZE(mmap_obj)-Cbytes);
     switch(Cbytes) {
       case sizeof(float): /* 4 byte float */
       for(i=0;  i < LEN; i++) {
         ival =  (index_p[i]-1)*sizeof(float);
-  /*Rprintf("ival: %i, upper_bound: %i, index_p[i]: %i\n", ival, upper_bound, index_p[i]);*/
         if( ival > upper_bound || ival < 0 )
           error("'i=%i' out of bounds", i);
         float_value = (float)(real_value[i]);
@@ -611,9 +634,8 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
       }
       break;
     }
-    break;
-  case VECSXP:
-/*Rprintf("%i, %i\n", length(value), length(MMAP_SMODE(mmap_obj)));*/
+    break; /* }}} */
+  case VECSXP: /* {{{ */
     if(length(value) != length(MMAP_SMODE(mmap_obj)))
       error("size of struct and size of replacement value do not match");
     for(v=0; v<length(MMAP_SMODE(mmap_obj)); v++) {
@@ -639,7 +661,6 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
               }
             } else {
               for(i=0; i < LEN; i++) {
-                //int_valye = INTEGER(VECTOR_ELT(value,v))[i];
                 short_value = (unsigned short)(INTEGER(VECTOR_ELT(value,v))[i]);
                 memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
                        &short_value,
@@ -649,16 +670,6 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
             break;
             case sizeof(int):
               for(i=0; i < LEN; i++) {
-    /*            Rprintf("i: %i, index_p[i]-1*sizeof(int)+offset: %i, offset: %i\n",
-                        i, (index_p[i]-1)*sizeof(int)+offset, offset);*/
-          //      ival =  (index_p[i]-1)*sizeof(int);
-          //      if( ival > upper_bound || ival < 0 )
-          //        error("'i=%i' out of bounds", i);
-                /*
-                memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
-                       &(INTEGER(VECTOR_ELT(value,v))[i]),
-                       sizeof(int));
-                */
                 memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
                        &(int_value[i]),
                        sizeof(int));
@@ -677,11 +688,14 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
         default:
           break;
       }
+    } /* VECSXP }}} */
+  case STRSXP:
+    for(i=0; i < LEN; i++) {
+      memcpy(&(data[(index_p[i]-1)]), CHAR(STRING_ELT(value,i)), Cbytes);
     }
-
     break;
+  case CPLXSXP:
   default:
-    /* add support for CPLXSXP and VECSXP (R level structs) */
     error("unsupported type");
     break;
   }
