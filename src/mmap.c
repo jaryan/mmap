@@ -691,7 +691,7 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
     } /* VECSXP }}} */
   case STRSXP:
     for(i=0; i < LEN; i++) {
-      memcpy(&(data[(index_p[i]-1)]), CHAR(STRING_ELT(value,i)), Cbytes);
+      memcpy(&(data[(index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes);
     }
     break;
   case CPLXSXP:
