@@ -26,8 +26,9 @@ as.Ctype.complex <- function(x) {
   cplx(length(x))
 }
 
-char <- C_raw <- C_char <- function(length=0) {
-  structure(raw(length), bytes=1L, signed=1L, class=c("Ctype","char"))
+char <- C_char <- function(length=0) {
+  structure(character(length), bytes=as.integer(length), signed=0L,
+            class=c("Ctype","char"))
 }
 
 uchar <- C_uchar <- function(length=0) {
@@ -107,10 +108,14 @@ print.Ctype <- function(x, ...) {
     }
   } else {
     cat(paste("(",class(x)[2],") ",sep=""))
+    .class <- class(x)[2]
     attributes(x) <- NULL
-    if(length(x)==0)
+    if(length(x)==0) {
       cat(paste(typeof(x),"(0)\n",sep=""))
-    else
+    } else
+    if(.class=="char") {
+      cat(paste("character(",length(x),")\n",sep=""))
+    } else
     cat(x,"\n")
   }
 }

@@ -188,19 +188,24 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
   int v, i, ii, ival;
   int P=0;
   unsigned char *data; /* unsigned int and values */
-  char *int24_buf[4];  /* 3 byte int */
-  char *uint24_buf[4];  /* 3 byte int */
+
+  /* 24 bit integers require a mask of the depending
+     on whether the type is signed or unsigned */
+  char *int24_buf[4],
+       *uint24_buf[4];  
   memset(int24_buf, 0, 4);
   memset(uint24_buf, 0xFF, 4);
-  char *int_buf[sizeof(int)], *real_buf[sizeof(double)];
-  char *complex_buf[sizeof(Rcomplex)];
-  char *short_buf[sizeof(short)], *float_buf[sizeof(float)];
+
 
   PROTECT(index = coerceVector(index,INTSXP)); P++;
   int LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
   int Cbytes = MMAP_CBYTES(mmap_obj);
   int isSigned = MMAP_SIGNED(mmap_obj);
+
+  char *int_buf[sizeof(int)], *real_buf[sizeof(double)];
+  char *complex_buf[sizeof(Rcomplex)];
+  char *short_buf[sizeof(short)], *float_buf[sizeof(float)];
 
   unsigned char *byte_buf;
   SEXP byteBuf;
@@ -283,21 +288,20 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
         if(isSigned) {
         for(i=0;  i < LEN; i++) {
           ival =  (index_p[i]-1)*3;
-          /* reset int_but to 0xFFFF IFF int > 8388607 */
           if( ival > upper_bound || ival < 0 )
             error("'i=%i' out of bounds", index_p[i]);
           memcpy(int24_buf, 
                  &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
                  3);
           int_dat[i] = (int)*(int *)(int24_buf); 
-          if(int_dat[i] > 8388607) {
+          if(int_dat[i] > 8388607) {  /* MAX 3 byte unsigned INTEGER */
           memcpy(uint24_buf, 
                  &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
                  3);
           }
           int_dat[i] = (int)*(int *)(uint24_buf); 
         }
-        } else {
+        } else { /* 3 byte unsigned */
         for(i=0;  i < LEN; i++) {
           ival =  (index_p[i]-1)*3;
           /* reset int_but to 0 0 0 0 */
@@ -368,6 +372,13 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
              sizeof(char)*sizeof(Rcomplex));
       //complex_dat[i] = (Rcomplex)*(Rcomplex *)(complex_buf); 
       complex_dat[i] = *(Rcomplex *)(complex_buf); 
+    }
+    break; /* }}} */
+  case STRSXP: /* {{{ */
+    for(i=0; i < LEN; i++) {
+      SET_STRING_ELT(dat, i,
+        mkCharLenCE((const char *)&(data[(index_p[i]-1)*Cbytes]),
+                    Cbytes, CE_NATIVE));
     }
     break; /* }}} */
   case RAWSXP: /* {{{ */
