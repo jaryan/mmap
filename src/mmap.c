@@ -719,12 +719,28 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
 /* {{{ mmap_compare */
 SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
   int i;
-  char *data, *int_buf[sizeof(int)], *real_buf[sizeof(double)];
+  char *data, 
+       *char_buf[sizeof(char)], 
+       *int_buf[sizeof(int)], 
+       *short_buf[sizeof(short)],
+       *float_buf[sizeof(float)],
+       *real_buf[sizeof(double)];
+
+  /* 24 bit integers require a mask of the depending
+     on whether the type is signed or unsigned */
+  char *int24_buf[4],
+       *uint24_buf[4];  
+  memset(int24_buf, 0, 4);
+  memset(uint24_buf, 0xFF, 4);
+
   long LEN;
   int mode = MMAP_MODE(mmap_obj); 
+  int Cbytes = MMAP_CBYTES(mmap_obj);
+  int isSigned = MMAP_SIGNED(mmap_obj);
+
   SEXP result;
-  LEN = (long)(MMAP_SIZE(mmap_obj)/sizeof(int));  /* change to REAL */
-  PROTECT(result = allocVector(mode, LEN));
+  LEN = (long)(MMAP_SIZE(mmap_obj)/Cbytes);  /* change to REAL */
+  PROTECT(result = allocVector(INTSXP, LEN));
   int *int_result = INTEGER(result);
 
   /* comp_how
@@ -739,7 +755,8 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
   //int *int_dat;
   //double *real_dat;
   int hits=0;
-  int cmp_to = INTEGER(compare_to)[0];
+  int cmp_to_int;
+  double cmp_to_real;
 
   data = MMAP_DATA(mmap_obj);
   if(data == NULL)
@@ -747,54 +764,501 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
 
   switch(mode) {
   case INTSXP:
-    LEN = (long)(MMAP_SIZE(mmap_obj)/sizeof(int));  /* change to REAL */
-    if(cmp_how==1) {
-      for(i=0;  i < LEN; i++) {
-        memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-        if(cmp_to == (int)*(int *)(int_buf)) 
-          int_result[hits++] = i+1;
+    cmp_to_int = INTEGER(coerceVector(compare_to,INTSXP))[0];
+    /* needs to branch for
+        uint8, int8, uint16, int16, uint24, int24, int32 */
+    switch(Cbytes) {
+    case 1: /* char int {{{ */
+      if(isSigned) {
+      if(cmp_how==1) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(char_buf, &(data[i * sizeof(char)]),sizeof(char));
+          if(cmp_to_int == (int)(char)*(char *)(char_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==2) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(char_buf, &(data[i * sizeof(char)]), sizeof(char));
+          if(cmp_to_int != (int)(char)*(char *)(char_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==3) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(char_buf, &(data[i * sizeof(char)]), sizeof(char));
+          if(cmp_to_int <= (int)(char)*(char *)(char_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==4) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(char_buf, &(data[i * sizeof(char)]), sizeof(char));
+          if(cmp_to_int >= (int)(char)*(char *)(char_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==5) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(char_buf, &(data[i * sizeof(char)]), sizeof(char));
+          if(cmp_to_int <  (int)(char)*(char *)(char_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==6) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(char_buf, &(data[i * sizeof(char)]), sizeof(char));
+          if(cmp_to_int >  (int)(char)*(char *)(char_buf)) 
+            int_result[hits++] = i+1;
+        }
       }
-    } else
-    if(cmp_how==2) {
-      for(i=0;  i < LEN; i++) {
-        memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-        if(cmp_to != (int)*(int *)(int_buf)) 
-          int_result[hits++] = i+1;
+      } else { /* unsigned char */
+      if(cmp_how==1) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(char_buf, &(data[i * sizeof(char)]),sizeof(char));
+          if(cmp_to_int == (int)(unsigned char)*(unsigned char *)(char_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==2) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(char_buf, &(data[i * sizeof(char)]), sizeof(char));
+          if(cmp_to_int != (int)(unsigned char)*(unsigned char *)(char_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==3) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(char_buf, &(data[i * sizeof(char)]), sizeof(char));
+          if(cmp_to_int <= (int)(unsigned char)*(unsigned char *)(char_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==4) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(char_buf, &(data[i * sizeof(char)]), sizeof(char));
+          if(cmp_to_int >= (int)(unsigned char)*(unsigned char *)(char_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==5) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(char_buf, &(data[i * sizeof(char)]), sizeof(char));
+          if(cmp_to_int <  (int)(unsigned char)*(unsigned char *)(char_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==6) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(char_buf, &(data[i * sizeof(char)]), sizeof(char));
+          if(cmp_to_int >  (int)(unsigned char)*(unsigned char *)(char_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } /* end of uchar */
       }
-    } else
-    if(cmp_how==3) {
-      for(i=0;  i < LEN; i++) {
-        memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-        if(cmp_to <= (int)*(int *)(int_buf)) 
-          int_result[hits++] = i+1;
+      break; /* }}} */
+    case 2: /* short int {{{ */
+      if(isSigned) {
+      if(cmp_how==1) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(short_buf, &(data[i * sizeof(short)]),sizeof(short));
+          if(cmp_to_int == (int)(short)*(short *)(short_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==2) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int != (int)(short)*(short *)(short_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==3) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int <= (int)(short)*(short *)(short_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==4) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int >= (int)(short)*(short *)(short_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==5) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int <  (int)(short)*(short *)(short_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==6) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int >  (int)(short)*(short *)(short_buf)) 
+            int_result[hits++] = i+1;
+        }
       }
-    } else
-    if(cmp_how==4) {
-      for(i=0;  i < LEN; i++) {
-        memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-        if(cmp_to >= (int)*(int *)(int_buf)) 
-          int_result[hits++] = i+1;
+      } else { /* unsigned short */
+      if(cmp_how==1) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(short_buf, &(data[i * sizeof(short)]),sizeof(short));
+          if(cmp_to_int == (int)(unsigned short)*(unsigned short *)(short_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==2) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int != (int)(unsigned short)*(unsigned short *)(short_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==3) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int <= (int)(unsigned short)*(unsigned short *)(short_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==4) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int >= (int)(unsigned short)*(unsigned short *)(short_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==5) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int <  (int)(unsigned short)*(unsigned short *)(short_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==6) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int >  (int)(unsigned short)*(unsigned short *)(short_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } /* end of ushort */
       }
-    } else
-    if(cmp_how==5) {
-      for(i=0;  i < LEN; i++) {
-        memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-        if(cmp_to <  (int)*(int *)(int_buf)) 
-          int_result[hits++] = i+1;
+      break; /* }}} */
+    case 3: /* 3 byte int {{{ */
+      if(isSigned) {
+      if(cmp_how==1) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int24_buf, 
+                 &(data[i*3]), /* copy first 3 bytes */
+                 3);
+          if((int)*(int *)(int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+            memcpy(uint24_buf, 
+                   &(data[i*3]), /* copy first 3 bytes */
+                   3);
+            if(cmp_to_int == (int)*(int *)(uint24_buf)) 
+              int_result[hits++] = i+1;
+          } else {
+            if(cmp_to_int == (int)*(int *)(int24_buf)) 
+              int_result[hits++] = i+1;
+          }
+        }
+      } else
+      if(cmp_how==2) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int24_buf, 
+                 &(data[i*3]), /* copy first 3 bytes */
+                 3);
+          if((int)*(int *)(int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+            memcpy(uint24_buf, 
+                   &(data[i*3]), /* copy first 3 bytes */
+                   3);
+            if(cmp_to_int != (int)*(int *)(uint24_buf)) 
+              int_result[hits++] = i+1;
+          } else {
+            if(cmp_to_int != (int)*(int *)(int24_buf)) 
+              int_result[hits++] = i+1;
+          }
+        }
+      } else
+      if(cmp_how==3) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int24_buf, 
+                 &(data[i*3]), /* copy first 3 bytes */
+                 3);
+          if((int)*(int *)(int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+            memcpy(uint24_buf, 
+                   &(data[i*3]), /* copy first 3 bytes */
+                   3);
+            if(cmp_to_int <= (int)*(int *)(uint24_buf)) 
+              int_result[hits++] = i+1;
+          } else {
+            if(cmp_to_int <= (int)*(int *)(int24_buf)) 
+              int_result[hits++] = i+1;
+          }
+        }
+      } else
+      if(cmp_how==4) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int24_buf, 
+                 &(data[i*3]), /* copy first 3 bytes */
+                 3);
+          if((int)*(int *)(int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+            memcpy(uint24_buf, 
+                   &(data[i*3]), /* copy first 3 bytes */
+                   3);
+            if(cmp_to_int >= (int)*(int *)(uint24_buf)) 
+              int_result[hits++] = i+1;
+          } else {
+            if(cmp_to_int >= (int)*(int *)(int24_buf)) 
+              int_result[hits++] = i+1;
+          }
+        }
+      } else
+      if(cmp_how==5) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int24_buf, 
+                 &(data[i*3]), /* copy first 3 bytes */
+                 3);
+          if((int)*(int *)(int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+            memcpy(uint24_buf, 
+                   &(data[i*3]), /* copy first 3 bytes */
+                   3);
+            if(cmp_to_int < (int)*(int *)(uint24_buf)) 
+              int_result[hits++] = i+1;
+          } else {
+            if(cmp_to_int < (int)*(int *)(int24_buf)) 
+              int_result[hits++] = i+1;
+          }
+        }
+      } else
+      if(cmp_how==6) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int24_buf, 
+                 &(data[i*3]), /* copy first 3 bytes */
+                 3);
+          if((int)*(int *)(int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+            memcpy(uint24_buf, 
+                   &(data[i*3]), /* copy first 3 bytes */
+                   3);
+            if(cmp_to_int > (int)*(int *)(uint24_buf)) 
+              int_result[hits++] = i+1;
+          } else {
+            if(cmp_to_int > (int)*(int *)(int24_buf)) 
+              int_result[hits++] = i+1;
+          }
+        }
       }
-    } else
-    if(cmp_how==6) {
-      for(i=0;  i < LEN; i++) {
-        memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-        if(cmp_to >  (int)*(int *)(int_buf)) 
-          int_result[hits++] = i+1;
+      } else { /* unsigned 3 byte int */
+      if(cmp_how==1) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int24_buf, 
+                 &(data[i*3]), /* copy first 3 bytes */
+                 3);
+          if(cmp_to_int == (int)*(int *)(int24_buf))
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==2) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int24_buf, 
+                 &(data[i*3]), /* copy first 3 bytes */
+                 3);
+          if(cmp_to_int != (int)*(int *)(int24_buf))
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==3) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int24_buf, 
+                 &(data[i*3]), /* copy first 3 bytes */
+                 3);
+          if(cmp_to_int <= (int)*(int *)(int24_buf))
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==4) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int24_buf, 
+                 &(data[i*3]), /* copy first 3 bytes */
+                 3);
+          if(cmp_to_int >= (int)*(int *)(int24_buf))
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==5) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int24_buf, 
+                 &(data[i*3]), /* copy first 3 bytes */
+                 3);
+          if(cmp_to_int <  (int)*(int *)(int24_buf))
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==6) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int24_buf, 
+                 &(data[i*3]), /* copy first 3 bytes */
+                 3);
+          if(cmp_to_int >  (int)*(int *)(int24_buf))
+            int_result[hits++] = i+1;
+        }
+      } /* end of unsigned 3 byte */
       }
-    } 
+      break; /* }}} */
+    case 4: /* int {{{ */
+      if(cmp_how==1) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
+          if(cmp_to_int == (int)*(int *)(int_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==2) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
+          if(cmp_to_int != (int)*(int *)(int_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==3) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
+          if(cmp_to_int <= (int)*(int *)(int_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==4) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
+          if(cmp_to_int >= (int)*(int *)(int_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==5) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
+          if(cmp_to_int <  (int)*(int *)(int_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==6) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
+          if(cmp_to_int >  (int)*(int *)(int_buf)) 
+            int_result[hits++] = i+1;
+        }
+      }
+      break;
+    default: /* }}} */
+      error("unsupported integer type");
+    }
     break;
   case REALSXP:
+    /* NA handling is missing .. how is this to behave? 
+       Likely should test for compare_to as well as on-disk
+       values.
+    */
+    cmp_to_real = REAL(coerceVector(compare_to,REALSXP))[0];
+    switch(Cbytes) {
+    case sizeof(float):
+      if(cmp_how==1) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
+          if(cmp_to_real == (double)(float)*(float *)(float_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==2) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
+          if(cmp_to_real != (double)(float)*(float *)(float_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==3) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
+          if(cmp_to_real <= (double)(float)*(float *)(float_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==4) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
+          if(cmp_to_real >= (double)(float)*(float *)(float_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==5) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
+          if(cmp_to_real <  (double)(float)*(float *)(float_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==6) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
+          if(cmp_to_real >  (double)(float)*(float *)(float_buf)) 
+            int_result[hits++] = i+1;
+        }
+      }
+      break;
+    case sizeof(double):
+      if(cmp_how==1) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
+          if(cmp_to_real == (double)*(double *)(real_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==2) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
+          if(cmp_to_real != (double)*(double *)(real_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==3) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
+          if(cmp_to_real <= (double)*(double *)(real_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==4) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
+          if(cmp_to_real >= (double)*(double *)(real_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==5) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
+          if(cmp_to_real <  (double)*(double *)(real_buf)) 
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==6) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
+          if(cmp_to_real >  (double)*(double *)(real_buf)) 
+            int_result[hits++] = i+1;
+        }
+      }
+      break;
+    default:
+      error("unknown floating point size");
+      break;
+    }
+/*
     for(i=0;  i < LEN; i++) {
       memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(char) * sizeof(double));
     }
+*/
     break;
   case RAWSXP:
     for(i=0;  i < LEN; i++) {
@@ -810,6 +1274,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
   return result;
   return ScalarInteger(hits);
 }/*}}}*/
+
 
 
 /* yet to implemented/expiremental functionality */

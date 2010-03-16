@@ -5,9 +5,9 @@ Ops.mmap <- function(e1,e2) {
                             "<="=4L,
                             ">"= 5L,
                             "<"= 6L)
-  if(is.mmap(e1) && is.integer(e1$storage.mode)) {
-    .Call("mmap_compare", as.integer(e2), OPS, e1) 
-  } else if(is.mmap(e2) && is.integer(e2$storage.mode)) {
-    .Call("mmap_compare", as.integer(e1), OPS, e2) 
+  if(is.mmap(e1)) {
+    .Call("mmap_compare", e2, OPS, e1) 
+  } else if(is.mmap(e2)) {
+    .Call("mmap_compare", e1, OPS, e2) 
   }
 }
