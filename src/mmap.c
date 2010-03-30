@@ -860,9 +860,11 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     case 2: /* short int {{{ */
       if(isSigned) {
       if(cmp_how==1) {
+        cmp_to_int = (short)cmp_to_int;
         for(i=0;  i < LEN; i++) {
           memcpy(short_buf, &(data[i * sizeof(short)]),sizeof(short));
-          if(cmp_to_int == (int)(short)*(short *)(short_buf)) 
+          //if(cmp_to_int == (int)(short)*(short *)(short_buf)) 
+          if(cmp_to_int == (short)*(short *)(short_buf)) 
             int_result[hits++] = i+1;
         }
       } else
