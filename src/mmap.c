@@ -101,7 +101,8 @@ SEXP mmap_mkFlags (SEXP _flags) {
 } /*}}}*/
 
 /* mmap_mmap {{{ */
-SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot, SEXP _flags) {
+SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
+                SEXP _flags, SEXP _len, SEXP _off) {
   int fd;
   char *data;
   struct stat st;
@@ -110,17 +111,31 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot, SEXP _flags) {
   fd = open(CHAR(STRING_ELT(_fildesc,0)), O_RDWR);
   if(fd < 0)
     error("unable to open file");
+  /*
   data = mmap((caddr_t)0, (int)st.st_size, INTEGER(_prot)[0], INTEGER(_flags)[0], fd, 0);
+  */
+  data = mmap((caddr_t)0, INTEGER(_len)[0], INTEGER(_prot)[0], INTEGER(_flags)[0], fd, INTEGER(_off)[0]);
   if(data == MAP_FAILED)
     error("unable to mmap file");
   
   SEXP mmap_obj;
   PROTECT(mmap_obj = allocVector(VECSXP,5));
-  SET_VECTOR_ELT(mmap_obj, 0, R_MakeExternalPtr(data,R_NilValue,R_NilValue));/* data pointer    */
-  SET_VECTOR_ELT(mmap_obj, 1, ScalarInteger((int)st.st_size));               /* size in bytes   */
-  SET_VECTOR_ELT(mmap_obj, 2, ScalarInteger(fd));                            /* file descriptor */
-  SET_VECTOR_ELT(mmap_obj, 3, _type);                                        /* storage mode    */
-  SET_VECTOR_ELT(mmap_obj, 4, ScalarReal((double)sysconf(_SC_PAGE_SIZE)));   /* page size       */
+  /* data pointer    */
+  SET_VECTOR_ELT(mmap_obj, 0, R_MakeExternalPtr(data,R_NilValue,R_NilValue));
+
+  /* size in bytes   */
+  /*SET_VECTOR_ELT(mmap_obj, 1, ScalarInteger((int)st.st_size));*/
+  SET_VECTOR_ELT(mmap_obj, 1, _len);               
+
+  /* file descriptor */
+  SET_VECTOR_ELT(mmap_obj, 2, ScalarInteger(fd));
+
+  /* storage mode    */
+  SET_VECTOR_ELT(mmap_obj, 3, _type);
+
+  /* page size       */
+  SET_VECTOR_ELT(mmap_obj, 4, ScalarReal((double)sysconf(_SC_PAGE_SIZE)));   
+
   UNPROTECT(1);
   /* need to register a finalizer to munmap in case GC'd */
   return(mmap_obj);

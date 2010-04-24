@@ -19,6 +19,7 @@ mmap(file, mode = int32(),
      extractFUN=NULL, replaceFUN=NULL,
      prot=mmapFlags("PROT_READ","PROT_WRITE"),
      flags=mmapFlags("MAP_SHARED"),
+     len, off=0L,
      ...)
 
 munmap(x)
@@ -77,6 +78,14 @@ Set via bitwise OR with \code{mmapFlags} to one or more of
 \sQuote{MAP_FIXED}: Interpret \emph{addr} exactly (Not Applicable).
 Not all will apply within the context of R objects.
 }
+  \item{len}{
+length in bytes of mapping from offset. (EXPERT USE ONLY)
+}
+  \item{off}{
+offset in bytes to start mapping. This \emph{must be} a multiple
+of the system pagesize.  No checking is currently done, nor is there
+any mmap provision to find pagesize automatically. (EXPERT USE ONLY)
+}
   \item{\dots}{
 unused
 }
@@ -92,10 +101,10 @@ The general semantics of the R function map to
 the underlying POSIX C function call. The notable
 exception is the use of \code{file} in place of
 \code{void *addr} and \code{int fildes}.  Additionally
-\code{len} and \code{off} arguments are ommitted from
-the interface at present, so the entire object is
-currently mapped into memory.  This may change in
-future releases.
+\code{len} and \code{off} arguments are
+made available to the R level call, though require
+special care based on the system's mmap
+and are advised for expert use only.
 
 \code{as.mmap} allows for in-memory objects to be
 converted to mmapped version on-disk.  The files are

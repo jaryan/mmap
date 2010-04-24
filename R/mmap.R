@@ -80,15 +80,20 @@ mmapFlags <- function(...) {
 mmap <- function(file, mode=int32(), 
                  extractFUN=NULL, replaceFUN=NULL,
                  prot=mmapFlags("PROT_READ","PROT_WRITE"),
-                 flags=mmapFlags("MAP_SHARED"),
+                 flags=mmapFlags("MAP_SHARED"),len,off=0L,
                  ...) {
     if(missing(file))
       stop("'file' must be specified")
+    if(missing(len))
+      len <- file.info(file)$size
     mmap_obj <- .Call("mmap_mmap", 
                       as.Ctype(mode),
                       file,
                       as.integer(prot), 
-                      as.integer(flags), PKG="mmap")
+                      as.integer(flags), 
+                      as.integer(len),
+                      as.integer(off),
+                      PKG="mmap")
     names(mmap_obj) <- c("data",
                          "bytes",
                          "filedesc",
