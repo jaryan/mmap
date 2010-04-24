@@ -141,6 +141,11 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   return(mmap_obj);
 } /*}}}*/
 
+/* mmap_pagesize {{{ */
+SEXP mmap_pagesize () {
+  return ScalarInteger((int)sysconf(_SC_PAGE_SIZE));
+} /*}}}*/
+
 /* mmap_is_mmapped {{{ */
 SEXP mmap_is_mmapped (SEXP mmap_obj) {
   char *data = MMAP_DATA(mmap_obj);

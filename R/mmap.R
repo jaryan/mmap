@@ -86,6 +86,9 @@ mmap <- function(file, mode=int32(),
       stop("'file' must be specified")
     if(missing(len))
       len <- file.info(file)$size
+    if(off %% pagesize() != 0L)
+      stop(paste("'off' must be a multiple of",pagesize(),"(pagesize)"))
+    
     mmap_obj <- .Call("mmap_mmap", 
                       as.Ctype(mode),
                       file,
@@ -205,4 +208,8 @@ as.mmap.complex <- function(x,
 
 tempmmap <- function(tmpdir=tempdir()) {
   tempfile("mmap",tmpdir)
+}
+
+pagesize <- function() {
+  .Call("mmap_pagesize")
 }
