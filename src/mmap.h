@@ -1,5 +1,6 @@
 #include <R.h>
 #include <Rinternals.h>
+#include "config.h"
 
 #define MMAP_DATA(mmap_object)        R_ExternalPtrAddr(VECTOR_ELT(mmap_object,0))
 #define MMAP_SIZE(mmap_object)        INTEGER(VECTOR_ELT(mmap_object,1))[0]

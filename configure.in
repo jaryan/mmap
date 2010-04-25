@@ -1,0 +1,6 @@
+AC_INIT(mmap, 0.5-5)
+
+AC_PROG_CC
+AC_CONFIG_HEADERS([src/config.h])
+AC_CHECK_FUNCS(madvise)
+AC_OUTPUT

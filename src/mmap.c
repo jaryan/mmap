@@ -93,6 +93,25 @@ SEXP mmap_mkFlags (SEXP _flags) {
     } else
     if(strcmp(cur_string,"MAP_FIXED")==0) {
       flags_bit = flags_bit | MAP_FIXED; continue;
+
+#ifdef HAVE_MADVISE
+    } else
+    if(strcmp(cur_string,"MADV_NORMAL")==0) {
+      flags_bit = flags_bit | MADV_NORMAL; continue;
+    } else
+    if(strcmp(cur_string,"MADV_RANDOM")==0) {
+      flags_bit = flags_bit | MADV_RANDOM; continue;
+    } else
+    if(strcmp(cur_string,"MADV_SEQUENTIAL")==0) {
+      flags_bit = flags_bit | MADV_SEQUENTIAL; continue;
+    } else
+    if(strcmp(cur_string,"MADV_WILLNEED")==0) {
+      flags_bit = flags_bit | MADV_WILLNEED; continue;
+    } else
+    if(strcmp(cur_string,"MADV_DONTNEED")==0) {
+      flags_bit = flags_bit | MADV_DONTNEED; continue;
+#endif
+
     } else {
       warning("unknown constant: skipped");
     }
