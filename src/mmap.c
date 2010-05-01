@@ -196,6 +196,18 @@ SEXP mmap_msync (SEXP mmap_obj, SEXP _flags) {
   return ScalarInteger(ret);
 }/*}}}*/
 
+/* {{{ mmap_madvise */
+SEXP mmap_madvise (SEXP mmap_obj, SEXP _len, SEXP _flags) {
+  char *data;
+  data = MMAP_DATA(mmap_obj);
+#ifdef HAVE_MADVISE
+  int ret = madvise(data, INTEGER(_len)[0], INTEGER(_flags)[0]);
+#else
+  int ret = -1;
+#endif
+  return ScalarInteger(ret);
+}/*}}}*/
+
 /* {{{ mmap_mprotect */
 SEXP mmap_mprotect (SEXP mmap_obj, SEXP index, SEXP prot) {
   int i, ival, upper_bound, LEN;
@@ -415,10 +427,11 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
     break; /* }}} */
   case STRSXP: /* {{{ */
     /* see https://svn.r-project.org/R/trunk/src/main/raw.c */
+    /* fixed width character support */
     for(i=0; i < LEN; i++) {
       SET_STRING_ELT(dat, i,
         mkCharLenCE((const char *)&(data[(index_p[i]-1)*Cbytes]),
-                    Cbytes, CE_NATIVE));
+                    Cbytes-1, CE_NATIVE));
     }
     break; /* }}} */
   case RAWSXP: /* {{{ */
@@ -796,6 +809,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
   int hits=0;
   int cmp_to_int;
   double cmp_to_real;
+  unsigned char * cmp_to_raw;
 
   data = MMAP_DATA(mmap_obj);
   if(data == NULL)
@@ -1306,6 +1320,20 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
       
     }
     break;
+  case STRSXP: /* {{{ */
+    /* see https://svn.r-project.org/R/trunk/src/main/raw.c */
+    /* fixed width character support */
+    cmp_to_raw = RAW(compare_to);
+    int b;
+    for(i=0; i < LEN; i++) {
+        for(b=0; b < Cbytes-1; b++) {
+          if(cmp_to_raw[b] != data[i*Cbytes + b])
+            break;
+        }
+        if(b == Cbytes-1)
+          int_result[hits++] = i+1;
+    }
+    break; /* }}} */
   default:
     error("unsupported type");
     break;

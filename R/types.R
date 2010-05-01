@@ -27,7 +27,7 @@ as.Ctype.complex <- function(x) {
 }
 
 char <- C_char <- function(length=0) {
-  structure(character(length), bytes=as.integer(length), signed=0L,
+  structure(character(length+1), bytes=as.integer(length+1), signed=0L,
             class=c("Ctype","char"))
 }
 
