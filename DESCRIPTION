@@ -3,6 +3,7 @@ Type: Package
 Title: Map Pages of Memory
 Version: 0.5-5
 Date: 2010-04-24
+OS_type: unix
 Author: Jeffrey A. Ryan
 LazyLoad: yes
 Maintainer: Jeffrey A. Ryan <jeff.a.ryan@gmail.com>
