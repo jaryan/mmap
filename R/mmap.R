@@ -45,17 +45,22 @@ print.mmap <- function(x, ...) {
   if(nchar(file_name) > 10)
     file_name <- paste(substring(file_name,0,10),"...",sep="")
   type_name <- switch(typeof(x$storage.mode),
+                      "list"="struct",
                       "integer"="int",
                       "double"="num",
                       "complex"="cplx",
                       "character"="chr",
                       "raw"="raw")
+  if(type_name == "struct") {
+    firstN <- x[1][[1]]
+  } else {
   firstN <- x[1:min(6,length(x))]
   firstN <- if(cumsum(nchar(firstN))[length(firstN)] > 20) {
                 firstN[1:min(3,length(x))]
               } else {
                 firstN
               }
+  }
   cat(paste("<mmap:",file_name,">  (",class(x$storage.mode)[2],") ",
             type_name," [1:", length(x),"]",sep=""),firstN,"...\n")
 }
@@ -143,18 +148,20 @@ is.mmap <- function(x) {
   } else as.function(extractFUN(x))(.Call("mmap_extract", i, x, PKG="mmap"))
 }
 
-`[<-.mmap` <- function(x, i, ..., sync=TRUE, value) {
+`[<-.mmap` <- function(x, i, j, ..., sync=TRUE, value) {
   # add type checking/coercing at the C-level
   if(!x[[2]]) stop('no data to extract')
   if(missing(i))
     i <- 1:length(x)
+  if(missing(j))
+    j <- 1:length(x$storage.mode)
   if(length(i) != length(value))
     if(is.list(value))
       value <- lapply(value, rep, length.out=length(i))
     else value <- rep(value, length.out=length(i))
   if(i > length(x) || i < 0)
     stop("improper 'i' range")
-  .Call("mmap_replace", i, value, x, PKG="mmap") 
+  .Call("mmap_replace", i, j, value, x, PKG="mmap") 
   if(sync)
     msync(x)
   x
