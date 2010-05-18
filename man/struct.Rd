@@ -1,9 +1,10 @@
 \name{struct}
 \alias{struct}
+\alias{as.struct}
 \alias{as.list.Ctype}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Construct a Ctype \sQuote{struct}.
+Construct a Ctype struct
 }
 \description{
 Construct arbitarily complex \sQuote{struct}ures

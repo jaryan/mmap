@@ -1,6 +1,8 @@
 \name{C_types}
 \alias{types}
+\alias{as.Ctype}
 \alias{char}
+\alias{cplx}
 \alias{int8}
 \alias{uint8}
 \alias{int16}
@@ -10,6 +12,18 @@
 \alias{int32}
 \alias{real32}
 \alias{real64}
+\alias{as.char}
+\alias{as.cplx}
+\alias{as.int8}
+\alias{as.uint8}
+\alias{as.int16}
+\alias{as.uint16}
+\alias{as.int24}
+\alias{as.uint24}
+\alias{as.int32}
+\alias{as.real32}
+\alias{as.real64}
+\alias{nbytes}
 \title{
 Virtual R Types On Disk.
 }
