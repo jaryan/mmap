@@ -15,3 +15,5 @@
                                         mmap_object,3),install("offset")))[i]
 #define MMAP_PAGESIZE(mmap_object)    INTEGER(VECTOR_ELT(mmap_object,3))[0]
 #define MMAP_SYNC(mmap_object)        INTEGER(VECTOR_ELT(mmap_object,4))[0]
+
+SEXP mmap_unmmap (SEXP mmap_obj);

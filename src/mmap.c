@@ -5,8 +5,19 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/mman.h>
+
+
 #include "mmap.h"
+
+#ifdef HAVE_MMAP
+#  include <sys/mman.h>
+#endif
+
+typedef struct {
+  char * data;
+  int  size;
+  int  fd;
+} MM;
 
 /*
 The "mmap" package for R is designed to provide a
@@ -44,17 +55,6 @@ as the addition of a smart finalizer.
 Comments, criticisms, and concerns should be directed
 to the maintainer of the package.
 */
-SEXP rawToIntVector2 (SEXP raw_);
-SEXP rawToDoubleVector (SEXP raw_);
-int compareto (int *cmp, int *to);
-int compareto (int *cmp, int *to) {
-  if(*cmp == *to)
-    return 1;
-  return 0;
-}
-
-
-
 /* mmap_mkFlags {{{ */
 SEXP mmap_mkFlags (SEXP _flags) {
   char *cur_string;
@@ -119,7 +119,21 @@ SEXP mmap_mkFlags (SEXP _flags) {
   return ScalarInteger(flags_bit);
 } /*}}}*/
 
-/* mmap_mmap {{{ */
+/* mmap_munmap {{{ */
+SEXP mmap_munmap (SEXP mmap_obj) {
+  char *data = MMAP_DATA(mmap_obj);
+  int fd = MMAP_FD(mmap_obj);
+
+  if(data == NULL)
+    error("invalid mmap pointer");
+
+  int ret = munmap(data, MMAP_SIZE(mmap_obj));
+  close(fd); /* should be moved back to R */
+  R_ClearExternalPtr(VECTOR_ELT(mmap_obj,0));
+  return(ScalarInteger(ret)); 
+} /*}}}*/
+
+/* mmap_mmap AND mmap_finalizer {{{ */
 SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
                 SEXP _flags, SEXP _len, SEXP _off) {
   int fd;
@@ -130,10 +144,13 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   fd = open(CHAR(STRING_ELT(_fildesc,0)), O_RDWR);
   if(fd < 0)
     error("unable to open file");
-  /*
-  data = mmap((caddr_t)0, (int)st.st_size, INTEGER(_prot)[0], INTEGER(_flags)[0], fd, 0);
-  */
-  data = mmap((caddr_t)0, INTEGER(_len)[0], INTEGER(_prot)[0], INTEGER(_flags)[0], fd, INTEGER(_off)[0]);
+  data = mmap((caddr_t)0, 
+              INTEGER(_len)[0], 
+              INTEGER(_prot)[0], 
+              INTEGER(_flags)[0], 
+              fd, 
+              INTEGER(_off)[0]);
+
   if(data == MAP_FAILED)
     error("unable to mmap file");
   
@@ -141,22 +158,28 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   PROTECT(mmap_obj = allocVector(VECSXP,5));
   /* data pointer    */
   SET_VECTOR_ELT(mmap_obj, 0, R_MakeExternalPtr(data,R_NilValue,R_NilValue));
-
   /* size in bytes   */
-  /*SET_VECTOR_ELT(mmap_obj, 1, ScalarInteger((int)st.st_size));*/
   SET_VECTOR_ELT(mmap_obj, 1, _len);               
-
   /* file descriptor */
   SET_VECTOR_ELT(mmap_obj, 2, ScalarInteger(fd));
-
   /* storage mode    */
   SET_VECTOR_ELT(mmap_obj, 3, _type);
-
   /* page size       */
   SET_VECTOR_ELT(mmap_obj, 4, ScalarReal((double)sysconf(_SC_PAGE_SIZE)));   
 
+  /*
+  need to register a finalizer to munmap in case GC'd
+  MM *mm;
+  mm = Calloc(1, MM);
+  mm[0].data = data;
+  mm[0].size = INTEGER(_len)[0];
+  mm[0].fd = fd;
+  SEXP mm_ptr = R_MakeExternalPtr(mm,R_NilValue,R_NilValue);
+  PROTECT(mm_ptr);
+
+  R_RegisterCFinalizerEx(mm_ptr, mmap_finalizer, TRUE);
+  */
   UNPROTECT(1);
-  /* need to register a finalizer to munmap in case GC'd */
   return(mmap_obj);
 } /*}}}*/
 
@@ -174,20 +197,6 @@ SEXP mmap_is_mmapped (SEXP mmap_obj) {
   return(ScalarLogical(1));
 } /*}}}*/
 
-/* mmap_munmap {{{ */
-SEXP mmap_munmap (SEXP mmap_obj) {
-  char *data = MMAP_DATA(mmap_obj);
-  int fd = MMAP_FD(mmap_obj);
-
-  if(data == NULL)
-    error("invalid mmap pointer");
-
-  int ret = munmap(data, MMAP_SIZE(mmap_obj));
-  close(fd); /* should be moved back to R */
-  R_ClearExternalPtr(VECTOR_ELT(mmap_obj,0));
-  return(ScalarInteger(ret)); 
-} /*}}}*/
-
 /* {{{ mmap_msync */
 SEXP mmap_msync (SEXP mmap_obj, SEXP _flags) {
   char *data;
@@ -198,6 +207,8 @@ SEXP mmap_msync (SEXP mmap_obj, SEXP _flags) {
 
 /* {{{ mmap_madvise */
 SEXP mmap_madvise (SEXP mmap_obj, SEXP _len, SEXP _flags) {
+  /* function needs to allow for data to be an offset, else
+     we can't control anything of value... */
   char *data;
   data = MMAP_DATA(mmap_obj);
 #ifdef HAVE_MADVISE
@@ -564,29 +575,30 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
 }/*}}}*/
 
 /* mmap_replace {{{ */
-SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
+SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
   int i, upper_bound, ival;
-  int v, offset, fieldCbytes, fieldSigned;
+  int v, fi, offset, fieldCbytes, fieldSigned;
   char *data;
   int LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
   int Cbytes = MMAP_CBYTES(mmap_obj);
-  int isSigned = MMAP_SIGNED(mmap_obj);
+  /*int isSigned = MMAP_SIGNED(mmap_obj);*/
   int P=0;
 
   if((data = MMAP_DATA(mmap_obj)) == NULL)
     error("invalid mmap pointer");
 
-  int *int_value;
+  int    *int_value;
   double *real_value;
-  float float_value;
-  short short_value;
-  char char_value;
+  float  float_value;
+  short  short_value;
+  char   char_value;
 
   if(mode != VECSXP) {
     PROTECT(value = coerceVector(value, mode)); P++;
   }
   PROTECT(index = coerceVector(index, INTSXP) ); P++;
+  PROTECT(field = coerceVector(field, INTSXP) ); P++;
   int *index_p = INTEGER(index);
   switch(mode) {
   case INTSXP: /* {{{ */
@@ -688,32 +700,31 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
     }
     break; /* }}} */
   case VECSXP: /* {{{ */
-    if(length(value) != length(MMAP_SMODE(mmap_obj)))
+    if(length(value) != length(field))
       error("size of struct and size of replacement value do not match");
-    for(v=0; v<length(MMAP_SMODE(mmap_obj)); v++) {
+    for(fi=0; fi<length(field); fi++) {
+      v = INTEGER(field)[fi]-1;
       offset = MMAP_OFFSET(mmap_obj, v);  /* byte offset of column */
       fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),
                                       install("bytes")))[0];
       fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),
                                       install("signed")))[0];
       switch(TYPEOF(VECTOR_ELT(MMAP_SMODE(mmap_obj),v))) {
-        case NILSXP:  /* skip columns that are not being updated (list elem == NULL) */
-          break;
         case INTSXP:
-          LEN = length(VECTOR_ELT(value,v));
-          int_value = INTEGER(VECTOR_ELT(value, v));
+          LEN = length(VECTOR_ELT(value,fi));
+          int_value = INTEGER(VECTOR_ELT(value, fi));
           switch(fieldCbytes) {
             case sizeof(short):
             if(fieldSigned) {
               for(i=0; i < LEN; i++) {
-                short_value = (short)(INTEGER(VECTOR_ELT(value,v))[i]);
+                short_value = (short)(INTEGER(VECTOR_ELT(value,fi))[i]);
                 memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
                        &short_value,
                        fieldCbytes);
               }
             } else {
               for(i=0; i < LEN; i++) {
-                short_value = (unsigned short)(INTEGER(VECTOR_ELT(value,v))[i]);
+                short_value = (unsigned short)(INTEGER(VECTOR_ELT(value,fi))[i]);
                 memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
                        &short_value,
                        fieldCbytes);
@@ -730,11 +741,11 @@ SEXP mmap_replace (SEXP index, SEXP value, SEXP mmap_obj) {
           }
           break;
         case REALSXP:
-          LEN = length(VECTOR_ELT(value,v));
+          LEN = length(VECTOR_ELT(value,fi));
           switch(fieldCbytes) {
             case sizeof(float):
             for(i=0; i < LEN; i++) {
-              float_value = (float)(REAL(VECTOR_ELT(value,v))[i]);
+              float_value = (float)(REAL(VECTOR_ELT(value,fi))[i]);
               memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
                      &float_value,
                      sizeof(float));
@@ -1344,122 +1355,3 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
   return ScalarInteger(hits);
 }/*}}}*/
 
-
-
-/* yet to implemented/expiremental functionality */
-
-/* mmap_read: generic read with readBin-like semantics */
-/* mmap_read_bytes: raw() specific return */
-/*{{{*/
-/* mmap_read_int {{{ */
-SEXP mmap_read_int (SEXP index, SEXP mmap_obj) {
-  int i;
-  char *data, *buf[sizeof(int)];
-  int LEN = length(index);  
-
-  data = R_ExternalPtrAddr(VECTOR_ELT(mmap_obj,0));
-  if(data == NULL)
-    error("invalid mmap pointer");
-
-  SEXP dat;
-  PROTECT(dat = allocVector(INTSXP,LEN));
-  int *int_dat = INTEGER(dat);
-  int *index_p = INTEGER(index);
-  for(i=0;  i < LEN; i++) {
-    //if(index_p[i] > 1000000) error("outside bound");
-    memcpy(buf, &(data[(index_p[i]-1) * sizeof(int)]), sizeof(char) * sizeof(int));
-    int_dat[i] = (int)*(int *)(buf); 
-  }
-  UNPROTECT(1);
-  return dat;
-} /*}}}*/
-
-/* {{{ read_double_mmap */
-SEXP read_double_mmap (SEXP index) {
-  int i,fd;
-  char *data, *buf[sizeof(double)];
-  int LEN = length(index);  
-
-  fd = open("data.bin", O_RDONLY);
-
-  data = mmap((caddr_t)0, 40000000, PROT_READ, MAP_SHARED, fd, 0);
-  if(data == NULL) {
-    error("not mmapped");
-  } 
-  SEXP dat;
-  
-  PROTECT(dat = allocVector(REALSXP,LEN));
-  double * real_dat = REAL(dat);
-  int * index_p = INTEGER(index);
-  for(i=0;  i < LEN; i++) {
-    memcpy(buf, &(data[(index_p[i]-1) * sizeof(double)]), sizeof(char) * sizeof(double));
-    real_dat[i] = (double)*(double *)(buf); 
-  }
-  munmap(data, 40000000);
-  close(fd);
-  UNPROTECT(1);
-  return dat;
-}
-
-SEXP rawToInt (SEXP raw_) {
-  void *buf[4];
-  memcpy(buf, RAW(raw_), sizeof(char) * 4);
-  //return ScalarInteger( (int)(*buf) );
-  return ScalarInteger( (int)*(int *)(buf) );
-}
-
-SEXP rawToIntVector (SEXP raw_) {
-  void *buf[4];
-  int i;
-  SEXP intVector;
-  PROTECT(intVector = allocVector(INTSXP, length(raw_)/sizeof(int)));
-  int *int_vec = INTEGER(intVector);
-  unsigned char * raw = RAW(raw_);
-  for(i=0; i < (int)(length(raw_)/sizeof(int)); i++) {
-    memcpy(buf, &(raw[i * sizeof(int)]), sizeof(char) * 4);
-    int_vec[i] = (int)*(int *)(buf);
-  }
-  UNPROTECT(1);
-  return intVector;
-}
-
-SEXP rawToIntVector2 (SEXP raw_) {
-  void *buf[4];
-  int i;
-  SEXP intVector;
-  PROTECT(intVector = allocVector(INTSXP, length(raw_)/sizeof(int)));
-  int *int_vec = INTEGER(intVector);
-  unsigned char * raw = RAW(raw_);
-  int max_i = (int)(length(raw_)/sizeof(int));
-  //  memcpy(buf, &(raw[0 * sizeof(int)]), sizeof(char) * 4);
-  for(i=0; i < max_i; i++) {
-    memcpy(buf, &(raw[i * sizeof(int)]), sizeof(char) * 4);
-    int_vec[i] = (int)*(int *)(buf);
-  }
-  //return ScalarInteger( (int)(*buf) );
-  UNPROTECT(1);
-  return intVector;
-}
-/*}}}*/
-SEXP rawToDoubleVector (SEXP raw_) {
-  void *buf[sizeof(double)];
-  int i;
-  SEXP doubleVector;
-  PROTECT(doubleVector = allocVector(REALSXP, length(raw_)/sizeof(double)));
-  double *double_vec = REAL(doubleVector);
-  unsigned char * raw = RAW(raw_);
-  int max_i = (int)(length(raw_)/sizeof(double));
-  for(i=0; i < max_i; i++) {
-    memcpy(buf, &(raw[i * sizeof(double)]), sizeof(char) * 8);
-    double_vec[i] = (double)*(double *)(buf);
-  }
-  UNPROTECT(1);
-  return doubleVector;
-}
-
-SEXP rawToDouble (SEXP raw_) {
-  void *buf[8];
-  memcpy(buf, RAW(raw_), sizeof(double));
-  //Rprintf("%f\n", (double)*(double *)(buf) );
-  return ScalarReal( (double)*(double *)(buf) );
-}
