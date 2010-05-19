@@ -245,9 +245,9 @@ Rprintf("offset: %i\n",(ival/pagesize)*pagesize);
 }/*}}}*/
 
 /* {{{ mmap_extract */
-SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
+SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
 /*SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {*/
-  int v, i, ii, ival;
+  int v, fi, i, ii, ival;
   int P=0;
   unsigned char *data; /* unsigned int and values */
 
@@ -282,7 +282,8 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
 
   SEXP dat; /* dat is either a column, or list of columns */
   if(mode==VECSXP) {
-    PROTECT(dat = allocVector(VECSXP, length(MMAP_SMODE(mmap_obj))));
+    //PROTECT(dat = allocVector(VECSXP, length(MMAP_SMODE(mmap_obj))));
+    PROTECT(dat = allocVector(VECSXP, length(field)));
   } else PROTECT(dat = allocVector(mode,LEN));
   P++;
 
@@ -474,7 +475,9 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
              &(data[(index_p[i]-1) * Cbytes]),
              Cbytes); 
     }  
-    for(v=0; v<length(MMAP_SMODE(mmap_obj)); v++) {
+    for(fi=0; fi<length(field); fi++) {
+      v = INTEGER(field)[fi]-1;
+    //for(v=0; v<length(MMAP_SMODE(mmap_obj)); v++) {
       offset = MMAP_OFFSET(mmap_obj,v);
       fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
                                       v),install("bytes")))[0];
@@ -522,7 +525,8 @@ SEXP mmap_extract (SEXP index, SEXP mmap_obj) {
             }
             break;
           }
-          SET_VECTOR_ELT(dat, v, vec_dat);
+          SET_VECTOR_ELT(dat, fi, vec_dat);
+          //SET_VECTOR_ELT(dat, v, vec_dat);
           UNPROTECT(1);
           break;
         case REALSXP:
