@@ -139,13 +139,17 @@ is.mmap <- function(x) {
   inherits(x, "mmap") && .Call("mmap_is_mmapped",x,PKG="mmap")
 }
 
-`[.mmap` <- function(x, i, ...) {
+`[.mmap` <- function(x, i, j, ...) {
   if(!x[[2]]) stop('no data to extract')
   if(missing(i))
     i <- 1:length(x)
+  if(missing(j))
+    j <- 1:length(x$storage.mode)
+  if(is.character(j))
+    j <- match(j, names(x$storage.mode))
   if(is.null(extractFUN(x))) {
-    .Call("mmap_extract", i, x, PKG="mmap")
-  } else as.function(extractFUN(x))(.Call("mmap_extract", i, x, PKG="mmap"))
+    .Call("mmap_extract", i, as.integer(j), x, PKG="mmap")
+  } else as.function(extractFUN(x))(.Call("mmap_extract", i, as.integer(j), x, PKG="mmap"))
 }
 
 `[<-.mmap` <- function(x, i, j, ..., sync=TRUE, value) {
@@ -155,10 +159,13 @@ is.mmap <- function(x) {
     i <- 1:length(x)
   if(missing(j))
     j <- 1:length(x$storage.mode)
+  if(is.character(j))
+    j <- match(j, names(x$storage.mode))
   if(length(i) != length(value))
     if(is.list(value))
       value <- lapply(value, rep, length.out=length(i))
     else value <- rep(value, length.out=length(i))
+# likely we need to check for list()/struct to correctly handle in C
   if(i > length(x) || i < 0)
     stop("improper 'i' range")
   .Call("mmap_replace", i, j, value, x, PKG="mmap") 

@@ -163,6 +163,10 @@ print.Ctype <- function(x, ...) {
   }
 }
 
+is.struct <- function(x) {
+  inherits(x, "struct")
+}
+
 as.struct <- function(x, ...) {
   UseMethod("as.struct")
 }
