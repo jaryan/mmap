@@ -26,6 +26,7 @@ export(
 
        struct,
        as.struct,
+       is.struct,
 
        as.Ctype,
        nbytes
