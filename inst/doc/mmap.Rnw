@@ -504,4 +504,26 @@ direct byte to R-type extraction and replacement.  Whether used
 for speed, memory reduction, or simplification of code, the \texttt{mmap}
 package provides R with one more tool to make
 programming with data easier and more robust.
+
+\pagebreak
+
+\begin{table}[hbt!]
+  \centering
+  \caption{Typical Valid Ranges By Type}
+  \vspace{5pt}
+  \begin{tabular}{lrl}
+    \textsl{type} & \textsl{minimum} & \textsl{maximum} \\
+    \toprule
+    int8   & -128       & 127        \\
+    uint8  & 0          & 255        \\
+    int16  & -32768     & 32767      \\
+    uint16 & 0          & 65534      \\
+    int24  & -8388608   & 8388607    \\
+    uint24 & 0          & 16777215   \\
+    int32  & -2147483648& 2147483647 \\
+    \bottomrule
+  \end{tabular}
+  \label{tab:ranges}
+\end{table}
+
 \end{document}

@@ -1,6 +1,7 @@
 \name{struct}
 \alias{struct}
 \alias{as.struct}
+\alias{is.struct}
 \alias{as.list.Ctype}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -12,11 +13,16 @@ in R for use with on-disk C struct's.
 }
 \usage{
 struct(...)
+
+is.struct(x)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{\dots}{
 Field types contained in struct.
+}
+  \item{x}{
+object to test
 }
 }
 \details{
@@ -49,7 +55,7 @@ A list of values, one element for each
 type of \R data.
 }
 \references{
-K&R, Kochran
+\url{http://en.wikipedia.org/wiki/Struct_(C_programming_language)}
 }
 \author{
 Jeffrey A. Ryan
@@ -64,8 +70,11 @@ data.  Conversley, if individual columns are desired
 it will likely make sense to simply store vectors
 in seperate files on disk and read in with \code{mmap}
 individually as needed.
-}
 
+Note that not all behavior of struct extraction and replacement
+is defined for all virtual and real types yet. This is
+an ongoing development and will be completed in the near future.
+}
 
 \seealso{
 \code{\link{types}}

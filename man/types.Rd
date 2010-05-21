@@ -2,6 +2,7 @@
 \alias{types}
 \alias{as.Ctype}
 \alias{char}
+\alias{uchar}
 \alias{cplx}
 \alias{int8}
 \alias{uint8}
@@ -13,6 +14,7 @@
 \alias{real32}
 \alias{real64}
 \alias{as.char}
+\alias{as.uchar}
 \alias{as.cplx}
 \alias{as.int8}
 \alias{as.uint8}
@@ -33,6 +35,7 @@ data stored on disk.
 }
 \usage{
 char(length = 0)
+uchar(length = 0)
 int8(length = 0)
 uint8(length = 0)
 int16(length = 0)
@@ -74,7 +77,8 @@ information related to number of bytes and whether
 the vitrual type is signed is also contained.
 }
 \references{
-Types???
+\url{http://en.wikipedia.org/wiki/C_variable_types_and_declarations}
+\url{http://cran.r-project.org/doc/manuals/R-exts.html#Interface-functions-_002eC-and-_002eFortran}
 }
 \author{
 Jeffrey A. Ryan
