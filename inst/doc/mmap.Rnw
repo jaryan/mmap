@@ -2,7 +2,6 @@
 \documentclass{article}
 
 \usepackage{hyperref}
-\usepackage{multirow}
 \usepackage{booktabs}
 \usepackage{color}
 \hypersetup{colorlinks,%
