@@ -22,13 +22,13 @@ as.Ctype.double <- function(x) {
 }
 as.Ctype.raw <- function(x) {
   if(length(x) == 1 && x==0)
-    char()
-  else char(length(x))
+    uchar()
+  else uchar(length(x))
 }
 as.Ctype.character <- function(x) {
   if(length(x) == 1 && x==0)
-    uint8()
-  else uint8(length(x))
+    char()
+  else char(length(x))
 }
 as.Ctype.complex <- function(x) {
   if(length(x) == 1 && x==0)
@@ -37,8 +37,12 @@ as.Ctype.complex <- function(x) {
 }
 
 char <- C_char <- function(length=0) {
-  structure(character(length+1), bytes=as.integer(length+1), signed=0L,
-            class=c("Ctype","char"))
+  if(length==0) { # a char byte
+    structure(raw(length), bytes=1L, signed=1L, class=c("Ctype","char"))
+  } else {
+    structure(character(length+1), bytes=as.integer(length+1), signed=0L,
+              class=c("Ctype","char"))
+  }
 }
 
 as.char <- function(x, ...) UseMethod("as.char")
@@ -53,6 +57,10 @@ uchar <- C_uchar <- function(length=0) {
 }
 
 as.uchar <- function(x, ...) UseMethod("as.uchar")
+as.uchar.mmap <- function(x, length, ...) {
+  x$storage.mode <- uchar(length)
+  x 
+}
 
 int8 <- function(length=0) {
   # signed 1 byte int
@@ -187,6 +195,5 @@ as.struct.default <- function(x, ...) {
 }
 
 nbytes <- function(x) UseMethod("nbytes")
-
 nbytes.Ctype <- function(x) attr(x, "bytes")
 nbytes.mmap <- function(x) x$bytes

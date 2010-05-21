@@ -147,9 +147,15 @@ is.mmap <- function(x) {
     j <- 1:length(x$storage.mode)
   if(is.character(j))
     j <- match(j, names(x$storage.mode))
+  j <- j[j>0] # only positive values
+  xx <- .Call("mmap_extract", i, as.integer(j), x, PKG="mmap")
+  names(xx) <- names(x$storage.mode)[j]
   if(is.null(extractFUN(x))) {
-    .Call("mmap_extract", i, as.integer(j), x, PKG="mmap")
-  } else as.function(extractFUN(x))(.Call("mmap_extract", i, as.integer(j), x, PKG="mmap"))
+    xx
+  } else as.function(extractFUN(x))(xx)
+#  if(is.null(extractFUN(x))) {
+#    .Call("mmap_extract", i, as.integer(j), x, PKG="mmap")
+#  } else as.function(extractFUN(x))(.Call("mmap_extract", i, as.integer(j), x, PKG="mmap"))
 }
 
 `[<-.mmap` <- function(x, i, j, ..., sync=TRUE, value) {
@@ -166,7 +172,7 @@ is.mmap <- function(x) {
       value <- lapply(value, rep, length.out=length(i))
     else value <- rep(value, length.out=length(i))
 # likely we need to check for list()/struct to correctly handle in C
-  if(i > length(x) || i < 0)
+  if(max(i) > length(x) || min(i) < 0)
     stop("improper 'i' range")
   .Call("mmap_replace", i, j, value, x, PKG="mmap") 
   if(sync)

@@ -1,38 +1,507 @@
-%\VignetteIndexEntry{mmap: Memory Mapped Files}
+%\VignetteIndexEntry{mmap: Memory Mapped Files in R}
 \documentclass{article}
+
 \usepackage{hyperref}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{color}
 \hypersetup{colorlinks,%
             citecolor=black,%
             linkcolor=blue,%
             urlcolor=blue,%
             }
 
-\title{\bf mmap: Memory Mapped Files}
+\definecolor{grey}{rgb}{.4,.4,.4}
+
+\title{\bf mmap: Memory Mapped Files in R}
 \author{Jeffrey A. Ryan}
-\date{May 19, 2010}
+\date{May 20, 2010}
 
 \begin{document}
+
+<<set_seed, echo=FALSE>>=
+set.seed(123)
+@
 
 \maketitle
 
 \abstract
-The \texttt{mmap} package offers a new interface for
-R users to information that reside on disk.  As data grows
-larger, the finite limits of random access memory 
+The \texttt{mmap} package offers an interface for
+R to information that resides on disk.  As dataset grow,
+the finite limits of random access memory 
 constrain the 
-the ability to process large files effeciently.
-Memory mapped files (mmap for short)
-leverage the underlying operating system's demand-based
+the ability to process larger-than-memory files efficiently.
+Memory mapped files (\emph{mmap} files)
+leverage the operating system demand-based
 paging infrastructure to move data from disk to memory as
-needed and in a transparent and highly optimized way.
-The package implements a low-level interface to the
-related system calls, as well as provides 
-abstractions to make accessing data from disk consistent
-with \R usage patterns.  This paper will explore the design and
-implementation of the \texttt{mmap} package and provide
-a comprehensive look at its usage and benefits.
+needed,  and do it in a transparent and highly optimized way.
+This package implements a simple low-level interface to the
+related system calls, as well as provides a useful set of
+abstractions to make accessing data on disk consistent
+with \texttt{R} usage patterns.  This paper will explore the design and
+implementation of the \texttt{mmap} package, provide
+a comprehensive look at its usage, and conclude with a
+look at some performance benchmarks and applications.
 
 \section{Background}
+As datasets of interest grow from megabytes to terabytes to petabytes, 
+the limiting factor for processing is often the availability of memory on a system.
+Even if memory is sufficient to hold an entire
+dataset, it is usually only a subset of data
+that is needed at any given moment.  In these instances it is
+beneficial to be able to only keep the data in memory that is needed at the
+time of the computation.  Traditionally this meant iterating through a 
+large file and reading chunks at a time, or utilizing a database system
+to manage the process in an external process.
 
+The downside to the above workaround for limited memory
+is that a deliberate effort by the user must
+be made to manage the reading and removal of data so as to keep memory
+usage within the limits of a given system.
+The system level \texttt{mmap} call is designed to make this 
+process easier and more efficient, from
+both a coding standpoint as well as an execution one. In fact, most modern
+database systems rely on a combination of mmap calls to make managing
+large data on limited memory systems feasible.
 
+To use mmap on large files, it is helpful to understand what is happening
+internally at the C level. Given a successful initialization call to \texttt{mmap},
+a pointer is returned to a byte offset of the opened file, typically the start of
+the file. From this point onward, all references to this pointer
+result in a series of bytes being read from disk into memory.  The read
+and write operations are hidden from the developer and are highly
+optimized to minimize seek and copying costs.
+
+The \texttt{mmap} package for R provides this level of access by cleanly
+wrapping the underlying operating system call.
+This minimal and direct API exposure allows for low-level bytes to be
+exposed to the R session.
+As mapped files can be shared among processes, this allows for
+a simple form of interprocess communication (IPC) to be available between R processes
+as well as between R and other system processes.
+
+The \texttt{mmap} package also makes additional abstractions available
+to allow simplified data access and manipulation from within R.  This
+includes a direct mapping of standard R data types from 
+binary files,
+as well as an assortment of virtual types that are 
+not directly supported in R, but still need to be accessed.
+Examples of these virtual types include single byte integers,
+four byte floats, and even more complex objects like C structs.  This
+paper will focus on working through basic examples as well as
+give some comparisons to other solutions available in R that satisfy many of
+the same objectives.
+
+\section{Mapping a file}
+To create a mapped file, either the \texttt{as.mmap} or \texttt{mmap}
+function is used.  Files
+are to be thought of as homogenous fixed-width byte strings
+on disk, similar to atomic vectors in R.
+One exception to this is the
+use of the \texttt{struct} type which will be covered later. For
+now we will begin by mapping atomic vectors.
+
+\subsection{\texttt{as.mmap}: memory to disk}
+To create a file to use, we will first use \texttt{as.mmap} to convert
+in-memory data into a mapped object.
+Here we create a vector of twenty million random numbers, which takes up
+about 150 MB of memory in an R session.  We'll then convert it into a tempory file
+and map it back in using the one function \texttt{as.mmap}.
+Note that we reassign to the original
+variable to free up memory, as it is now persistent on disk.
+
+<<as_mmap>>=
+library(mmap)
+
+r <- rnorm(20e6)
+gc()
+
+r <- as.mmap(r)
+r
+
+gc()
+@
+
+The \texttt{as.mmap} call simply writes the raw data using R's
+\textsl{writeBin} to a temporary file on disk. Internally this
+file is mapped with the appropriate \emph{mode}
+corresponding to the R storage mode.
+Keep in mind that 
+the data on disk is only a series of bytes. The OS \textsl{mmap}
+call is indifferent to the formal `type' offering no 
+facility to convert into a particular C type.  By specifying the mode
+to the R-level \texttt{mmap} call though,
+we can now manipulate this 
+``vector on disk'' as if it was in memory and of the type we expect.
+First we'll extract some elements using standard R semantics, then
+replace these values. Finally, we will
+call \texttt{munmap} to properly free the resources associated with
+the mapping.
+
+<<mmap_extract>>=
+r[1:10]
+r[87643]
+head(r)
+tail(r)
+length(r)
+r[1:10] <- 1:10
+r[87643] <- 3.14159265
+head(r)
+r[87643]
+munmap(r)
+@
+
+By default, elements are only taken from disk when
+extracted via a \texttt{`['} call. This allows for controlled
+behavior when dealing with objects that are likely to be
+many times the available memory.  Subsetting is \emph{always} required
+to access the contents of an mapped file. This
+is similar to the requirement in C of dereferencing the pointer
+to the data, and is in fact what is happening behind the scenes.
+To unmap the object and free the system resources, the code must call \texttt{munmap}.
+
+Many instances of \texttt{mmap} usage will be in a read-only capacity,
+with data already on disk. These data can come from
+external processes, or pre-processed by R to be in binary form.
+To access, a call to \texttt{mmap} is required.
+
+\subsection{\texttt{mmap}: disk to memory}
+The basic \texttt{mmap} call consists of a file path
+as the \textsl{file}
+parameter, and specifying the \textsl{mode} of the data to be returned.
+The \emph{mode} argument is unique to the \texttt{mmap}
+wrapper in R, and it is used to specify
+how the raw bytes are to be mapped into R. 
+There are a myriad of supported types
+and they all strive to follow the general 
+convention established by R in terms of calling
+style, namely that provided by the \emph{what}
+argument of \texttt{scan} and \texttt{readBin}: \texttt{integer()} for integers, 
+\texttt{double()} for double/numeric, etc.
+
+The \texttt{mmap} package currently supports thirteen fixed-width (byte count) types,
+including 8, 16, and 24-bit signed and unsigned integers, 32-bit signed integers,
+floating point numbers with 32 and 64-bits, complex numbers (128-bit), fixed-width
+character strings (nul terminated, as \texttt{writeBin} produces), and single byte char
+types.  Additionally, types may be combined into more complex structures
+via the \texttt{struct} type in mmap.  This is analogous to a row-based 
+representation where different types
+are adjacent on disk.
+This can be thought of as a \texttt{data.frame} or \texttt{list} in R.
+
+The C-styled types are offered for compatability
+with external programs, as well as to minimizing disk
+usage for values of limited range, though there may be performance
+penalties for non-stanard byte alignment, so testing is required
+for maximum performance. 
+
+One caveat to the above type availability is that R can only handle
+a small subset of these on-disk types natively.  All conversions to
+and from C-types to R-types are carried out
+in package-level C code, and types are automatically promoted so as not to
+lose precision.  More discussion of types will follow in the ``Types'' section.
+
+To try something a bit more interesting, we'll create some non-standard
+R data on disk.  We'll use a temporary file and the \textsl{writeBin}
+function in base R to alter the size to be 8-bit signed integer 
+values, fitting 10 integers into 10 bytes on disk.
+
+<<types1, keep.source=TRUE>>=
+tmp <- tempfile()
+
+writeBin(1:10L, tmp, size=1)  # write int as 1 byte
+readBin(tmp, integer(), size=1, signed=TRUE, n=10) # read back in to verify
+
+file.info(tmp)$size  # only 10 bytes on disk
+@
+
+Now that we have our file, we can map it back into R using 
+the \texttt{mmap} function. All the arguments to the function
+are detailed on the help page, and as this relies heavily on
+the operating system call, it is advisable to read the related
+man pages as well for your particular implementation. The key
+arguments to consider are the first two, \textsl{file} and
+\textsl{mode}.
+
+\texttt{file} is the path to the binary data on disk. Recall
+again that this is only the raw bytestring, no meta-data is accounted
+for or should be included. It is possible that header information could
+be skipped by utilizing the \texttt{len} and \texttt{off} arguments, but
+this is outside of expected usage patterns.
+
+\texttt{mode} refers to the binary type on disk.  This is
+used by mmap to perform type conversion to and from R, as
+well as to correctly manage the atomic length and
+offset behavior seen in R when subsets of data are requested.
+Refer to the ``Virtual Types'' table in the following
+section for details.
+
+<<mmap_int8>>=
+m <- mmap(file=tmp, mode=int8())
+m[]
+nbytes(m)
+@
+
+\section{Data Types}
+By design, R makes use of a limited subset of data types internally. These include
+signed integers (32-bit), floating point doubles (64-bit), and 
+complex numbers (128-bit) for numerical
+computations, as well as native support for character and raw byte values.
+There is also a compound type available with
+\texttt{list}, which may contain any of the above.
+This relatively limited selection is quite sufficient for
+use in R, but it is sometimes necessary to work with data that 
+may originate as different types
+or precision. \texttt{mmap}'s \emph{mode} argument allows for transparent
+conversion of most common types into the supported R subset
+through the use of a virtual class paradigm.  
+The following table describes the currently supported virtual
+type support in \texttt{mmap}.
+
+\begin{center}
+  \vspace{5pt}
+  \begin{tabular}{llll}
+    \multicolumn{4}{c}{Virtual Types} \\[8pt]
+    \textsl{mmap} & \textsl{R} & \textsl{C} & \textsl{bytes} \\
+    \toprule
+    \texttt{raw()}    & raw     & unsigned char             & 1 \\
+    \texttt{char()}   & raw     & char                      & 1\\
+    \texttt{uchar()}  & raw     & unsigned char             & 1\\
+    \midrule
+%    int8   & integer & -128 to 127               & 1 \\
+%    uint8  & integer & 0 to 255                  & 1 \\
+%    int16  & integer & -32768 to 32767           & 2 \\
+%    uint16 & integer & 0 to 65534                & 2 \\
+%    int24  & integer & -8388608 to 8388607       & 3 \\
+%    uint24 & integer & 0 to 16777215             & 3 \\
+%    int32  & integer & -2147483648 to 2147483647 & 4 \\
+    \texttt{int8()}   & integer & signed char               & 1 \\
+    \texttt{uint8()}  & integer & unsigned char             & 1 \\
+    \texttt{int16()}  & integer & signed short              & 2 \\
+    \texttt{uint16()} & integer & unsigned short            & 2 \\
+    \texttt{int24()}  & integer & three byte int            & 3 \\
+    \texttt{uint24()} & integer & unsigned three byte int   & 3 \\
+    \texttt{int32()}  & integer & int                       & 4 \\
+    \texttt{integer()}& integer & int                       & 4 \\
+    \midrule
+    \texttt{real32()} & double  & single precision float    & 4 \\
+    \texttt{real64()} & double  & double precision float    & 8 \\
+    \texttt{double()} & double  & double precision float    & 8 \\
+    \midrule
+    \texttt{cplx()}    & complex   & complex                & 16 \\
+    \texttt{complex()}    & complex   & complex                & 16 \\
+    \midrule
+    \texttt{char(n)} & character & fixed-width ascii      & n + 1 \\
+    \texttt{character(n)} & character & fixed-width ascii      & n + 1 \\
+    \midrule
+    \texttt{struct(...)}  & list      & struct of above types  & variable \\
+    \bottomrule
+  \end{tabular}
+  \label{tab:vtypes}
+\end{center}
+
+The leftmost column of the table is the
+constructor function used in \texttt{mmap} to create and
+describe this extended collection
+of types.  The first sixteen functions are called 
+\emph{without parameters} and passed as the
+\texttt{mode} argument to the \texttt{mmap} constructor. 
+Fixed width character
+vectors are mapped with a mode \texttt{char(n)}, where
+\textsl{n} must specify the number of characters
+in each element of the character mapping. A \texttt{nul} byte
+will be automatically assumed to increase the length of
+each string by one. The \texttt{struct} function
+takes any number of \emph{other} valid types from above, and creates a object
+of class \textsl{struct}. This allows for collections of disparate
+types to be organized together in row-major relations.
+
+Coercion from one type to another internally will move from
+least precision to most precision for extraction, but replacement
+functions will truncate values without warning. It is up to the user
+to determine the minimal precision required, and assure that the values
+assigned are within this range.  A table of legal value ranges by
+type is available at the end of this document.
+A few examples will illustrate some basic usage.
+
+<<types, keep.source=TRUE>>=
+# write out a vector of upper case letters as a char * array
+writeBin(LETTERS, tmp)  
+let <- mmap(tmp, char(1))
+let
+let[]
+munmap(let)
+#
+# view the data as a series of bytes instead, using raw()
+let <- mmap(tmp, raw())
+let[]
+munmap(let)
+#
+# view the data as a series of short integers 
+let <- mmap(tmp, int16())
+let[]
+munmap(let)
+@
+
+As you can see, the data on disk is simply an array of bytes. This
+provides maximum flexibility as there is no associated metadata to
+keep track of. Byte arrays are architecture dependent but allow
+for very simple interprocess communication and extraction. 
+
+To make use of data other than a
+homogenous collection of byte types, we can map a C-style struct
+from disk into R's multi-type container, the \emph{list}.  We do this
+by means of a \texttt{struct(...)} call.  For this example we'll start with 
+an array of 
+struct's on disk that are each composed of a 2-byte integer, a 4-byte
+integer, and an 8-byte floating point double.
+First we'll need to define
+our \textsl{struct}, as well as make sure it has the size we are expecting.
+
+<<struct, keep.source=TRUE>>=
+# 2-byte (int16)
+# 4-byte (int32 or integer)
+# 8-byte float (real64 or double)
+record.type <- struct(short=int16(),int=int32(),double=real64())
+record.type
+nbytes(record.type) # 14 bytes in total
+@
+<<struct_create, echo=FALSE>>=
+writeBin(rep(raw(nbytes(record.type)), 100), tmp)
+m <- mmap(tmp, record.type)
+#ids <- sapply(1:100, function(X) paste(sample(letters,3),collapse=""))
+m[] <- list(1:100L, sample(1e6,100), rnorm(100))#, ids)
+@
+
+Now we can extract individual elements of the array of structs.
+
+<<struct_extract>>=
+m <- mmap(tmp, record.type)
+m[1]
+m[1:3]
+m[1:3, "short"]
+length(m)
+@
+
+As mentioned previously, the result is a mapping to a list.  It is
+also consistent with R that the object could also be a data.frame.  
+\texttt{mmap} supports
+a set of hook functions with \texttt{extractFUN} and
+\texttt{replaceFUN} to allow for automatic class coercion of mapped
+objects upon extraction and replacement.  This can be defined at the
+point of mapping, or added later.  We'll try this here by converting
+our list result into a data.frame instead.
+
+<<struct_df>>=
+extractFUN(m) <- function(X) do.call(data.frame, X)
+extractFUN(m)
+@
+
+As you can see the object now has an extraction hook to enable
+on-the-fly coercion.  This allows the use of raw bytes on disk
+(useful for application independent data sharing),
+while at the same type exploiting the feature rich language of R.
+The examples in the package also show how this can be used for
+other classes as well, such as Date and POSIXct time. See \texttt{example(mmap)}.
+
+<<struct_df_ex, keep.source=TRUE>>=
+m[1]
+m[2:5]
+m[2:5, "double"] # note that subset is on mmap, returning a new data.frame
+m[2:5, 2]
+m[1:9][,"double"]  # second brackets act on d.f., as the first is on the mmap
+@
+
+\section{Performance}
+While there is a certain novelty to being able to use
+mapped files within R, the real value comes from performance gains.
+This can be seen in three distinct areas: (1) simplified interface to
+on-disk data, (2) reduction of memory footprint, and (3)
+increased throughput.  Any combination of the three can
+be seen as a benefit and makes \texttt{mmap} an important
+tool for high-performance programming.
+
+\subsection{Interface Simplicity}
+Handling large data on disk has always been possible
+in R using the built-in functions to read chunks of files.
+This is simple in strategy, albeit highly susceptible to
+errors. Keeping track of offsets, as well as freeing memory
+explicitely in R isn't likely the most optimal use of a
+developer or analyst's time.  mmap allows for direct
+access to subsets of data on disk, using standard R subsetting
+semantics.  This allows for R code to be cleaner, as well as
+safer.
+
+\subsection{Reduced Memory Requirements}
+The primary motivation to using mmap comes from
+removing the need to keep an entire data object
+in-core at all times.  The mmap package allows
+for direct access to subsets of data on disk, all while
+removing the need to have per-process memory allocated to
+the entire file.
+
+On small data, this is likely to not be an issue, but as
+data demands grow beyond available memory the benefits to
+minimizing a memory footprint grow too.  Even when data can fit
+into memory, it isn't the data that is needed per se, it is the
+analytical computations on that data. This puts an upper bound
+on data size well short of available memory.
+
+Another facet to mapped files is in the inherent ability
+to share data across disparate processes.  By mapping a
+file into memory, multiple processes can make use of the same
+data without requiring additional resources.  Caching, reads, and
+writes are all managed at the system-level, and as such are
+highly optimized.  Parallel computations on multicore architectures
+are simplified through the use of shared data.
+
+\subsection{Increased Throughput}
+For random access to large data on disk, the underlying
+mmap system call is as optimal a solution as modern operating
+systems offer. Minimizing the memory footprint in R also
+reduces the need for expensive allocation and garbage collections,
+further increasing performance.  mmap also provides for
+automatic caching of data, as directed by the OS mechanisms. This
+typically incurs a small penalty upon a new chunk of data
+being read, but can result in faster than in-core performance
+on recently accessed data chunks.
+
+An additional built in benefit from mmap objects comes from
+some simple Ops behavior.  As mmap objects are typically larger
+than desired for in-memory storage, logical operations
+will make use of memory and time reducing techniques to return
+only matches to queries.  The behavior is consistent with
+the R code \texttt{which(x==0)} to find data that matches some
+criteria, though operates via the standard
+Ops based equility test, namely \texttt{x==0}.
+This tends to be substantially faster though, as
+large logical vectors are not created, reducing both
+processing time as well as memory use.
+
+<<logical_test>>=
+one.to.onemil <- 1:1e6L
+writeBin(1:1e6L, tmp)
+m <- mmap(tmp, int32())
+str(m < 100)
+str(which(one.to.onemil < 100))
+system.time(m < 100)
+system.time(which(one.to.onemil < 100))
+@
+
+<<logical_cleanup, echo=FALSE>>=
+munmap(m)
+rm(one.to.onemil)
+@
+
+\section{Summary}
+The \texttt{mmap} package attempts to provide two levels
+of access to the POSIX system mmap call.  One level offers
+direct byte access, as well as user specified mappings of
+arguments from R to the system.  The second interface, albeit
+using the same functions, offers
+a more R-like level of interaction with data on disk, providing
+direct byte to R-type extraction and replacement.  Whether used
+for speed, memory reduction, or simplification of code, the \texttt{mmap}
+package provides R with one more tool to make
+programming with data easier and more robust.
 \end{document}

@@ -14,15 +14,14 @@ export(
 
        tempmmap,
 
-       extractFUN,
-       "extractFUN<-",
-       replaceFUN,
-       "replaceFUN<-",
+       extractFUN, "extractFUN<-",
+       replaceFUN, "replaceFUN<-",
 
-       char, int8,  int16,  int24,  int32,  real32,  real64,
-             uint8, uint16, uint24,
+       char,  int8,  int16,  int24,  int32,  
+       uchar, uint8, uint16, uint24,
+       real32, real64,
        cplx,
-       as.char, as.int8, as.uint8, as.int16, as.uint16, as.int24,
+       as.uchar, as.char, as.int8, as.uint8, as.int16, as.uint16, as.int24,
 
        struct,
        as.struct,
@@ -48,8 +47,6 @@ S3method(close,mmap)
 S3method(str,mmap)
 S3method(print,mmap)
 S3method(length, mmap)
-#S3method(head,mmap)
-#S3method(tail,mmap)
 
 S3method(as.mmap, complex)
 S3method(as.mmap, double)
@@ -65,6 +62,7 @@ S3method(as.Ctype, double)
 S3method(as.Ctype, integer)
 S3method(as.Ctype, raw)
 S3method(as.char, mmap)
+S3method(as.uchar, mmap)
 S3method(as.int8, mmap)
 S3method(as.uint8, mmap)
 S3method(as.int16, mmap)
@@ -75,5 +73,4 @@ S3method(nbytes, Ctype)
 S3method(nbytes, mmap)
 
 S3method(print, Ctype)
-
 S3method(as.list, Ctype)

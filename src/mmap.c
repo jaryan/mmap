@@ -549,7 +549,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
               real_vec_dat[ii] = (double)*(double *)(real_buf); 
             }
           }
-          SET_VECTOR_ELT(dat, v, vec_dat);
+          SET_VECTOR_ELT(dat, fi, vec_dat);
           UNPROTECT(1);
           break;
         case CPLXSXP:
