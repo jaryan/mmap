@@ -99,7 +99,7 @@ mmap <- function(file, mode=int32(),
                       file,
                       as.integer(prot), 
                       as.integer(flags), 
-                      as.integer(len),
+                      as.double(len),
                       as.integer(off),
                       PKG="mmap")
     names(mmap_obj) <- c("data",

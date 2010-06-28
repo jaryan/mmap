@@ -145,7 +145,7 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   if(fd < 0)
     error("unable to open file");
   data = mmap((caddr_t)0, 
-              INTEGER(_len)[0], 
+              (long)REAL(_len)[0], 
               INTEGER(_prot)[0], 
               INTEGER(_flags)[0], 
               fd, 
@@ -247,7 +247,7 @@ Rprintf("offset: %i\n",(ival/pagesize)*pagesize);
 /* {{{ mmap_extract */
 SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
 /*SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {*/
-  int v, fi, i, ii, ival;
+  long v, fi, i, ii, ival;
   int P=0;
   unsigned char *data; /* unsigned int and values */
 
@@ -288,7 +288,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
   P++;
 
   int *index_p = INTEGER(index);
-  int upper_bound;
+  long upper_bound;
 
   /* need R typed storage for structures... 
      ideally we needn't alloc for types
@@ -305,21 +305,29 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
   switch(mode) {
   case INTSXP: /* {{{ */
     int_dat = INTEGER(dat);
-    upper_bound = (int)(MMAP_SIZE(mmap_obj)-Cbytes);
+    upper_bound = (long)(MMAP_SIZE(mmap_obj)-Cbytes);
     switch(Cbytes) {
       case 1: /* 1 byte (signed) char */
         if(isSigned) {
           for(i=0;  i < LEN; i++) {
             ival = (index_p[i]-1);
-            if( ival > upper_bound || ival < 0 )
+            if( ival > upper_bound || ival < 0 ) {
+              if( ival == 0 ) {
+                continue;
+              }
               error("'i=%i' out of bounds", index_p[i]);
+            }
             int_dat[i] = (int)(char)(data[(index_p[i]-1)]);
           }
         } else { /* unsigned */
           for(i=0;  i < LEN; i++) {
             ival = (index_p[i]-1);
-            if( ival > upper_bound || ival < 0 )
+            if( ival > upper_bound || ival < 0 ) {
+              if( ival == 0 ) {
+                continue;
+              }
               error("'i=%i' out of bounds", index_p[i]);
+             }
             int_dat[i] = (int)(unsigned char)(data[(index_p[i]-1)]);
           }
         }
@@ -328,8 +336,12 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
         if(isSigned) {
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(short);
-          if( ival > upper_bound || ival < 0 )
+          if( ival > upper_bound || ival < 0 ) {
+            if( ival == 0 ) {
+              continue;
+            }
             error("'i=%i' out of bounds", index_p[i]);
+          }
           memcpy(short_buf, 
                  &(data[(index_p[i]-1)*sizeof(short)]),
                  sizeof(char)*sizeof(short));
@@ -338,8 +350,12 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
         } else {
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(short);
-          if( ival > upper_bound || ival < 0 )
+          if( ival > upper_bound || ival < 0 ) {
+            if( ival == 0 ) {
+              continue;
+            }
             error("'i=%i' out of bounds", index_p[i]);
+          }
           memcpy(short_buf, 
                  &(data[(index_p[i]-1)*sizeof(short)]),
                  sizeof(char)*sizeof(short));
@@ -351,8 +367,12 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
         if(isSigned) {
         for(i=0;  i < LEN; i++) {
           ival =  (index_p[i]-1)*3;
-          if( ival > upper_bound || ival < 0 )
+          if( ival > upper_bound || ival < 0 ) {
+            if( ival == 0 ) {
+              continue;
+            }
             error("'i=%i' out of bounds", index_p[i]);
+          }
           memcpy(int24_buf, 
                  &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
                  3);
@@ -368,8 +388,12 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
         for(i=0;  i < LEN; i++) {
           ival =  (index_p[i]-1)*3;
           /* reset int_but to 0 0 0 0 */
-          if( ival > upper_bound || ival < 0 )
+          if( ival > upper_bound || ival < 0 ) {
+            if( ival == 0 ) {
+              continue;
+            }
             error("'i=%i' out of bounds", index_p[i]);
+          }
           memcpy(int24_buf, 
                  &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
                  3);
@@ -380,8 +404,12 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
       case 4: /* 4 byte int */
         for(i=0;  i < LEN; i++) {
           ival =  (index_p[i]-1)*sizeof(int);
-          if( ival > upper_bound || ival < 0 )
+          if( ival > upper_bound || ival < 0 ) {
+            if( ival == 0 ) {
+              continue;
+            }
             error("'i=%i' out of bounds", index_p[i]);
+          }
           memcpy(int_buf, 
                  &(data[(index_p[i]-1)*sizeof(int)]),
                  sizeof(char)*sizeof(int));
