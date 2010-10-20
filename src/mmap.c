@@ -9,8 +9,15 @@
 
 #include "mmap.h"
 
+#ifndef WIN32
 #ifdef HAVE_MMAP
 #  include <sys/mman.h>
+#endif
+#else
+#include <ctype.h>
+#include <stdio.h>
+#include <windows.h>
+#undef HAVE_MADVISE
 #endif
 
 typedef struct {
@@ -116,10 +123,36 @@ SEXP mmap_mkFlags (SEXP _flags) {
       warning("unknown constant: skipped");
     }
   }
+#ifdef WIN32
+  flags_bit = PAGE_READWRITE;
+  if(flags_bit & PROT_READ & PROT_WRITE & MAP_SHARED)
+    flags_bit = PAGE_READWRITE;
+  else if(flags_bit & MAP_PRIVATE)
+    flags_bit = PAGE_WRITECOPY;
+  else if(flags_bit & PROT_READ)
+    flags_bit = PAGE_READONLY;
+#endif
   return ScalarInteger(flags_bit);
 } /*}}}*/
 
 /* mmap_munmap {{{ */
+#ifdef WIN32
+SEXP mmap_munmap (SEXP mmap_obj) {
+  int ret;
+  char *data = MMAP_DATA(mmap_obj);
+  HANDLE fd = (HANDLE)MMAP_FD(mmap_obj);
+  HANDLE mh = (HANDLE)MMAP_HANDLE(mmap_obj);
+
+  if(data == NULL)
+    error("invalid mmap pointer");
+
+  ret = UnmapViewOfFile(data);
+  CloseHandle(mh);
+  CloseHandle(fd);
+  R_ClearExternalPtr(VECTOR_ELT(mmap_obj,0));
+  return(ScalarInteger(ret));
+}
+#else
 SEXP mmap_munmap (SEXP mmap_obj) {
   char *data = MMAP_DATA(mmap_obj);
   int fd = MMAP_FD(mmap_obj);
@@ -132,8 +165,47 @@ SEXP mmap_munmap (SEXP mmap_obj) {
   R_ClearExternalPtr(VECTOR_ELT(mmap_obj,0));
   return(ScalarInteger(ret)); 
 } /*}}}*/
+#endif
 
 /* mmap_mmap AND mmap_finalizer {{{ */
+#ifdef WIN32
+SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
+                SEXP _flags, SEXP _len, SEXP _off) {
+  char *data;
+  struct stat st;
+  SYSTEM_INFO sSysInfo;
+  GetSystemInfo(&sSysInfo);
+
+  stat(CHAR(STRING_ELT(_fildesc,0)), &st);
+
+  HANDLE hFile=CreateFile(CHAR(STRING_ELT(_fildesc,0)),
+                  GENERIC_READ|GENERIC_WRITE,
+                  FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,OPEN_EXISTING,0,NULL);
+
+  HANDLE hMap=CreateFileMapping(hFile,NULL,PAGE_READWRITE,0,0,NULL);
+  DWORD dwFileSize=GetFileSize(hFile,NULL);
+  data = (char *)MapViewOfFile(hMap,FILE_MAP_WRITE,0,0,dwFileSize);
+
+
+  SEXP mmap_obj;
+  PROTECT(mmap_obj = allocVector(VECSXP,6));
+  /* data pointer    */
+  SET_VECTOR_ELT(mmap_obj, 0, R_MakeExternalPtr(data,R_NilValue,R_NilValue));
+  /* size in bytes   */
+  SET_VECTOR_ELT(mmap_obj, 1, _len);
+  /* file descriptor */
+  SET_VECTOR_ELT(mmap_obj, 2, ScalarInteger((int)hFile));
+  /* storage mode    */
+  SET_VECTOR_ELT(mmap_obj, 3, _type);
+  /* page size       */
+  SET_VECTOR_ELT(mmap_obj, 4, ScalarReal((double)sSysInfo.dwPageSize));
+  /* Map handle */
+  SET_VECTOR_ELT(mmap_obj, 5, ScalarInteger((int)hMap));
+
+  UNPROTECT(1);
+  return(mmap_obj);
+}
+#else
 SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
                 SEXP _flags, SEXP _len, SEXP _off) {
   int fd;
@@ -182,11 +254,20 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   UNPROTECT(1);
   return(mmap_obj);
 } /*}}}*/
+#endif
 
 /* mmap_pagesize {{{ */
+#ifdef WIN32
+SEXP mmap_pagesize () {
+  SYSTEM_INFO sSysInfo;
+  GetSystemInfo(&sSysInfo);
+  return ScalarInteger((int)sSysInfo.dwPageSize);
+} /*}}}*/
+#else
 SEXP mmap_pagesize () {
   return ScalarInteger((int)sysconf(_SC_PAGE_SIZE));
 } /*}}}*/
+#endif
 
 /* mmap_is_mmapped {{{ */
 SEXP mmap_is_mmapped (SEXP mmap_obj) {
@@ -197,6 +278,14 @@ SEXP mmap_is_mmapped (SEXP mmap_obj) {
   return(ScalarLogical(1));
 } /*}}}*/
 
+#ifdef WIN32
+SEXP mmap_msync (SEXP mmap_obj, SEXP _flags) {
+  char *data;
+  data = MMAP_DATA(mmap_obj);
+  FlushViewOfFile((void *)data, (size_t)MMAP_SIZE(mmap_obj));
+  return 0;
+}/*}}}*/
+#else
 /* {{{ mmap_msync */
 SEXP mmap_msync (SEXP mmap_obj, SEXP _flags) {
   char *data;
@@ -204,6 +293,7 @@ SEXP mmap_msync (SEXP mmap_obj, SEXP _flags) {
   int ret = msync(data, MMAP_SIZE(mmap_obj), INTEGER(_flags)[0]);
   return ScalarInteger(ret);
 }/*}}}*/
+#endif
 
 /* {{{ mmap_madvise */
 SEXP mmap_madvise (SEXP mmap_obj, SEXP _len, SEXP _flags) {
