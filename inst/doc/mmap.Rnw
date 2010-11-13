@@ -14,7 +14,7 @@
 
 \title{\bf mmap: Memory Mapped Files in R}
 \author{Jeffrey A. Ryan}
-\date{May 20, 2010}
+\date{October 25, 2010}
 
 \begin{document}
 
@@ -25,7 +25,7 @@ set.seed(123)
 \maketitle
 
 \abstract
-The \texttt{mmap} package offers an interface for
+The \texttt{mmap} package offers a cross-platform interface for
 R to information that resides on disk.  As dataset grow,
 the finite limits of random access memory 
 constrain the 
@@ -57,7 +57,8 @@ The downside to the above workaround for limited memory
 is that a deliberate effort by the user must
 be made to manage the reading and removal of data so as to keep memory
 usage within the limits of a given system.
-The system level \texttt{mmap} call is designed to make this 
+The system level \texttt{mmap} (\texttt{MapViewOfFile} on Windows)
+call is designed to make this 
 process easier and more efficient, from
 both a coding standpoint as well as an execution one. In fact, most modern
 database systems rely on a combination of mmap calls to make managing
@@ -239,6 +240,7 @@ section for details.
 m <- mmap(file=tmp, mode=int8())
 m[]
 nbytes(m)
+munmap(m)
 @
 
 \section{Data Types}
