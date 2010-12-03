@@ -1456,6 +1456,12 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
   case STRSXP: /* {{{ */
     /* see https://svn.r-project.org/R/trunk/src/main/raw.c */
     /* fixed width character support */
+    if(length(compare_to) > Cbytes-1) {
+      if(isNull(getAttrib(compare_how, install("partial")))) { /* TODO partial matching */
+        UNPROTECT(1); return allocVector(INTSXP,0);
+      }  
+      warning("only first %i characters of string compared", Cbytes-1);
+    }
     cmp_to_raw = RAW(compare_to);
     int b;
     for(i=0; i < LEN; i++) {
