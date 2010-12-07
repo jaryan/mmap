@@ -413,6 +413,10 @@ m[2:5, 2]
 m[1:9][,"double"]  # second brackets act on d.f., as the first is on the mmap
 @
 
+<<struct_df_ex_cleanup, echo=FALSE>>=
+munmap(m)
+@
+
 \section{Performance}
 While there is a certain novelty to being able to use
 mapped files within R, the real value comes from performance gains.
