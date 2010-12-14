@@ -15,3 +15,9 @@ Ops.mmap <- function(e1,e2) {
     .Call("mmap_compare", e1, OPS, e2) 
   }
 }
+
+dim.mmap <- function(x) {
+  if(is.struct(x$storage.mode))
+    return( c(length(x), length(x$storage.mode)) )
+  NULL
+}

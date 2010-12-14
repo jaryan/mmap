@@ -28,7 +28,9 @@ export(
        is.struct,
 
        as.Ctype,
-       nbytes
+       nbytes,
+
+       dim.mmap
       )
 
 # S3 methods

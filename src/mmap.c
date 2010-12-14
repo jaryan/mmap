@@ -836,10 +836,14 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
           LEN = length(VECTOR_ELT(value,fi));
           int_value = INTEGER(VECTOR_ELT(value, fi));
           switch(fieldCbytes) {
+            /* missing int8 and uint8 support */
             case sizeof(short):
             if(fieldSigned) {
               for(i=0; i < LEN; i++) {
+                /* should remove INTEGER calls if possible 
                 short_value = (short)(INTEGER(VECTOR_ELT(value,fi))[i]);
+                */
+                short_value = (short)(int_value[i]);
                 memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
                        &short_value,
                        fieldCbytes);

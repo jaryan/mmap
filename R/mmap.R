@@ -161,6 +161,8 @@ is.mmap <- function(x) {
 `[<-.mmap` <- function(x, i, j, ..., sync=TRUE, value) {
   # add type checking/coercing at the C-level
   if(!x[[2]]) stop('no data to extract')
+  if(is.struct(x$storage.mode) && !is.list(value))
+    value <- list(value)
   if(missing(i))
     i <- 1:length(x)
   if(missing(j))
