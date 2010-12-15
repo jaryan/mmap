@@ -588,14 +588,18 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
        - collect arrays into VECSXP dat
     */
     for(i=0; i<LEN; i++) {
-      /* byte_buf (byteBuf) now has all bytes for all structs */
+      /* byte_buf (byteBuf) now has all bytes for all structs 
+         This means that we'll have two copies of data in memory
+         for the duration of the call. It would be better if we
+         could release/resize this as we go, but for now this is
+         simple and effective.
+      */
       memcpy(&(byte_buf[i*Cbytes]),
              &(data[(index_p[i]-1) * Cbytes]),
              Cbytes); 
     }  
     for(fi=0; fi<length(field); fi++) {
       v = INTEGER(field)[fi]-1;
-    //for(v=0; v<length(MMAP_SMODE(mmap_obj)); v++) {
       offset = MMAP_OFFSET(mmap_obj,v);
       fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
                                       v),install("bytes")))[0];
@@ -634,6 +638,9 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
             }
             }
             break;
+            /*
+            case sizeof( three_byte_int )
+            */
             case sizeof(int): /* 4 byte */
             for(ii=0; ii<LEN; ii++) {
               memcpy(int_buf, 
@@ -682,6 +689,19 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
           SET_VECTOR_ELT(dat, v, vec_dat);
           UNPROTECT(1);
           break;
+        case RAWSXP: 
+          PROTECT(vec_dat = allocVector(RAWSXP, LEN));
+          raw_dat = RAW(vec_dat);
+          upper_bound = (int)(MMAP_SIZE(mmap_obj)-1);
+          for(i=0;  i < LEN; i++) {
+            ival =  (index_p[i]-1);
+            if( ival > upper_bound || ival < 0 )
+              error("'i=%i' out of bounds", index_p[i]);
+            raw_dat[i] = data[(index_p[i]-1)];
+          }
+          SET_VECTOR_ELT(dat, v, vec_dat);
+          UNPROTECT(1);
+          break;
         default:
           error("unimplemented type");
           break;
@@ -712,6 +732,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
 
   int    *int_value;
   double *real_value;
+  unsigned char *byte_value;
   float  float_value;
   short  short_value;
   char   char_value;
@@ -911,6 +932,12 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
   case STRSXP:
     for(i=0; i < LEN; i++) {
       memcpy(&(data[(index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes);
+    }
+    break;
+  case RAWSXP:
+    byte_value = RAW(value);
+    for(i=0; i < LEN; i++) {
+      memcpy(&(data[(index_p[i]-1)]), &(byte_value[i]), Cbytes);
     }
     break;
   case CPLXSXP:
