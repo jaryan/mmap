@@ -821,7 +821,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
       break;
     }
     break; /* }}} */
-  case VECSXP: /* {{{ */
+  case VECSXP: /* aka "struct"{{{ */
     if(length(value) != length(field))
       error("size of struct and size of replacement value do not match");
     for(fi=0; fi<length(field); fi++) {
@@ -834,15 +834,28 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
       switch(TYPEOF(VECTOR_ELT(MMAP_SMODE(mmap_obj),v))) {
         case INTSXP:
           LEN = length(VECTOR_ELT(value,fi));
-          int_value = INTEGER(VECTOR_ELT(value, fi));
+          /* make sure we have an int for value */
+          if(TYPEOF(VECTOR_ELT(value, fi)) != INTSXP)
+            int_value = INTEGER(coerceVector(VECTOR_ELT(value, fi), INTSXP));
+          else int_value = INTEGER(VECTOR_ELT(value, fi));
+
           switch(fieldCbytes) {
-            /* missing int8 and uint8 support */
+            case sizeof(char): /* 1 byte char */
+            for(i=0;  i < LEN; i++) {
+              /*
+              ival = (index_p[i]-1)*sizeof(char);
+              if( ival > upper_bound || ival < 0 )
+                error("'i=%i' out of bounds", index_p[i]);
+              */
+              char_value = (unsigned char)(int_value[i]); 
+              memcpy(&(data[(index_p[i]-1)*Cbytes+offset]), 
+                     &(char_value), 
+                     fieldCbytes);
+            }
+            break;
             case sizeof(short):
             if(fieldSigned) {
               for(i=0; i < LEN; i++) {
-                /* should remove INTEGER calls if possible 
-                short_value = (short)(INTEGER(VECTOR_ELT(value,fi))[i]);
-                */
                 short_value = (short)(int_value[i]);
                 memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
                        &short_value,
@@ -850,7 +863,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
               }
             } else {
               for(i=0; i < LEN; i++) {
-                short_value = (unsigned short)(INTEGER(VECTOR_ELT(value,fi))[i]);
+                short_value = (unsigned short)(int_value[i]);
                 memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
                        &short_value,
                        fieldCbytes);
@@ -868,10 +881,13 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
           break;
         case REALSXP:
           LEN = length(VECTOR_ELT(value,fi));
+          if(TYPEOF(VECTOR_ELT(value, fi)) != REALSXP)
+            real_value = REAL(coerceVector(VECTOR_ELT(value, fi), REALSXP));
+          else real_value = REAL(VECTOR_ELT(value, fi));
           switch(fieldCbytes) {
             case sizeof(float):
             for(i=0; i < LEN; i++) {
-              float_value = (float)(REAL(VECTOR_ELT(value,fi))[i]);
+              float_value = (float)(real_value[i]);
               memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
                      &float_value,
                      sizeof(float));
@@ -880,7 +896,8 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
           case sizeof(double):
             for(i=0; i < LEN; i++) {
               memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
-                     &(REAL(VECTOR_ELT(value,v))[i]),
+                     /*&(REAL(VECTOR_ELT(value,v))[i]),*/
+                     &(real_value[i]),
                      sizeof(double));
             }
             break;
