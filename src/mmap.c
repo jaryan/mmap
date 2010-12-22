@@ -262,12 +262,13 @@ SEXP mmap_pagesize () {
   SYSTEM_INFO sSysInfo;
   GetSystemInfo(&sSysInfo);
   return ScalarInteger((int)sSysInfo.dwPageSize);
-} /*}}}*/
+}
 #else
 SEXP mmap_pagesize () {
   return ScalarInteger((int)sysconf(_SC_PAGE_SIZE));
-} /*}}}*/
+}
 #endif
+/*}}}*/
 
 /* mmap_is_mmapped {{{ */
 SEXP mmap_is_mmapped (SEXP mmap_obj) {
@@ -279,14 +280,14 @@ SEXP mmap_is_mmapped (SEXP mmap_obj) {
 } /*}}}*/
 
 #ifdef WIN32
+/* {{{ mmap_msync */
 SEXP mmap_msync (SEXP mmap_obj, SEXP _flags) {
   char *data;
   data = MMAP_DATA(mmap_obj);
   FlushViewOfFile((void *)data, (size_t)MMAP_SIZE(mmap_obj));
   return 0;
-}/*}}}*/
+}
 #else
-/* {{{ mmap_msync */
 SEXP mmap_msync (SEXP mmap_obj, SEXP _flags) {
   char *data;
   data = MMAP_DATA(mmap_obj);
@@ -326,7 +327,7 @@ SEXP mmap_mprotect (SEXP mmap_obj, SEXP index, SEXP prot) {
     if( ival > upper_bound || ival < 0 )
       error("'i=%i' out of bounds", i);
     
-Rprintf("offset: %i\n",(ival/pagesize)*pagesize);
+/* Rprintf("offset: %i\n",(ival/pagesize)*pagesize); */
     addr = &(data[(int)((ival/pagesize)*pagesize)]);
     INTEGER(ret)[i] = mprotect(addr, ((ival/pagesize)*pagesize)*2, INTEGER(prot)[0]);
   }
@@ -391,6 +392,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
   int *int_vec_dat; 
   double *real_vec_dat;
   Rcomplex *complex_vec_dat;
+  Rbyte *raw_vec_dat;
 
   switch(mode) {
   case INTSXP: /* {{{ */
@@ -588,7 +590,9 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
        - collect arrays into VECSXP dat
     */
     for(i=0; i<LEN; i++) {
-      /* byte_buf (byteBuf) now has all bytes for all structs 
+      /* byte_buf (byteBuf) now has all bytes for the resulting struct
+         copied from the current data.
+
          This means that we'll have two copies of data in memory
          for the duration of the call. It would be better if we
          could release/resize this as we go, but for now this is
@@ -691,17 +695,23 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
           break;
         case RAWSXP: 
           PROTECT(vec_dat = allocVector(RAWSXP, LEN));
-          raw_dat = RAW(vec_dat);
-          upper_bound = (int)(MMAP_SIZE(mmap_obj)-1);
-          for(i=0;  i < LEN; i++) {
-            ival =  (index_p[i]-1);
-            if( ival > upper_bound || ival < 0 )
-              error("'i=%i' out of bounds", index_p[i]);
-            raw_dat[i] = data[(index_p[i]-1)];
+          raw_vec_dat = RAW(vec_dat);
+          for(ii=0; ii<LEN; ii++) {
+            raw_vec_dat[ii] = (Rbyte)(byte_buf[ii*Cbytes+offset]);;
           }
           SET_VECTOR_ELT(dat, v, vec_dat);
           UNPROTECT(1);
           break;
+        case STRSXP:
+          PROTECT(vec_dat = allocVector(STRSXP, LEN));
+          for(ii=0; ii < LEN; ii++) {
+            SET_STRING_ELT(vec_dat, ii,
+              mkCharLenCE((const char *)&(byte_buf[ii*Cbytes+offset]),
+                        fieldCbytes-1, CE_NATIVE));
+          }
+          SET_VECTOR_ELT(dat, v, vec_dat);
+          UNPROTECT(1);
+          break; 
         default:
           error("unimplemented type");
           break;
@@ -736,6 +746,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
   float  float_value;
   short  short_value;
   char   char_value;
+  SEXP string_value;
 
   if(mode != VECSXP) {
     PROTECT(value = coerceVector(value, mode)); P++;
@@ -924,7 +935,37 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
             break;
           }
           break;
+        case RAWSXP:
+          LEN = length(VECTOR_ELT(value,fi));
+          /* make sure we have an raw for value */
+          if(TYPEOF(VECTOR_ELT(value, fi)) != RAWSXP)
+            byte_value = RAW(coerceVector(VECTOR_ELT(value, fi), RAWSXP));
+          else byte_value = RAW(VECTOR_ELT(value, fi));
+
+          for(i=0;  i < LEN; i++) {
+              /*
+              ival = (index_p[i]-1)*sizeof(char);
+              if( ival > upper_bound || ival < 0 )
+                error("'i=%i' out of bounds", index_p[i]);
+              */
+            char_value = (unsigned char)(byte_value[i]); 
+            memcpy(&(data[(index_p[i]-1)*Cbytes+offset]), 
+                   &(char_value), 
+                   fieldCbytes);
+          }
+          break;
+        case STRSXP:
+          LEN = length(VECTOR_ELT(value, fi));
+          PROTECT(string_value = VECTOR_ELT(value, fi));
+          for(i=0; i < LEN; i++) {
+            memcpy(&(data[(index_p[i]-1)*Cbytes+offset]), 
+                   CHAR(STRING_ELT(string_value, i)), 
+                   fieldCbytes);
+          }
+          UNPROTECT(1);
+          break;
         default:
+          error("unimplemented replacement type");
           break;
       }
     } /* VECSXP }}} */

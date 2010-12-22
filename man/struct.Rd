@@ -91,6 +91,10 @@ int_32 <- c(98743L, -9083299L, 0L) # 4 byte, standard R integer
 float_32 <- c(9832.22, 3.14159, 0.00001)
 cplx_64 <- c(1+0i, 0+8i, 2+2i)
 
+# not yet supported in struct
+char_ <- writeBin(as.raw(1:3), raw())
+fixed_width_string <- c("ab","cd","ef")
+
 for(i in 1:3) {
   writeBin(u_int_8[i],  f, size=1L)
   writeBin(int_8[i],    f, size=1L)
@@ -100,6 +104,8 @@ for(i in 1:3) {
   writeBin(float_32[i], f, size=4L)  # store as 32bit - prec issues
   writeBin(float_32[i], f, size=8L)  # store as 64bit
   writeBin(cplx_64[i],  f)
+  writeBin(char_[i], f)
+  writeBin(fixed_width_string[i], f)
 }
 close(f)
 
@@ -110,13 +116,16 @@ m <- mmap(tmp, struct(uint8(),
                       int32(),
                       real32(),
                       real64(),
-                      cplx()))  # unsupported in struct as of 0.5-0
+                      cplx(),
+                      char(),  # also raw()
+                      char(2)  # character array of n characters each
+                     ))  
 length(m) # only 3 'struct' elements
 str(m[])
 
 m[1:2]
 
-# add a post-processing function to convert to a data.frame
+# add a post-processing function to convert some elements (rows) to a data.frame
 extractFUN(m) <- function(x,i,...) {
                    x <- x[i]
                    data.frame(u_int_8=x[[1]],

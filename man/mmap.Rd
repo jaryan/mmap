@@ -7,6 +7,7 @@
 \alias{replaceFUN<-}
 \alias{is.mmap}
 \alias{as.mmap}
+\alias{dim.mmap}
 \alias{tempmmap}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
