@@ -4,6 +4,7 @@
 \usepackage{hyperref}
 \usepackage{booktabs}
 \usepackage{color}
+\usepackage{fullpage}
 \hypersetup{colorlinks,%
             citecolor=black,%
             linkcolor=blue,%
@@ -301,6 +302,8 @@ type support in \texttt{mmap}.
   \label{tab:vtypes}
 \end{center}
 
+\vspace{20pt}
+
 The leftmost column of the table is the
 constructor function used in \texttt{mmap} to create and
 describe this extended collection
@@ -316,6 +319,8 @@ each string by one. The \texttt{struct} function
 takes any number of \emph{other} valid types from above, and creates a object
 of class \textsl{struct}. This allows for collections of disparate
 types to be organized together in row-major relations.
+
+\pagebreak
 
 Coercion from one type to another internally will move from
 least precision to most precision for extraction, but replacement
@@ -511,6 +516,7 @@ package provides R with one more tool to make
 programming with data easier and more robust.
 
 \pagebreak
+
 
 \begin{table}[hbt!]
   \centering
