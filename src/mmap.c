@@ -22,7 +22,7 @@
 
 typedef struct {
   char * data;
-  int  size;
+  long  size;
   int  fd;
 } MM;
 
@@ -149,7 +149,7 @@ SEXP mmap_munmap (SEXP mmap_obj) {
   ret = UnmapViewOfFile(data);
   CloseHandle(mh);
   CloseHandle(fd);
-  R_ClearExternalPtr(VECTOR_ELT(mmap_obj,0));
+  R_ClearExternalPtr(findVar(install("data"),mmap_obj));
   return(ScalarInteger(ret));
 }
 #else
@@ -162,9 +162,18 @@ SEXP mmap_munmap (SEXP mmap_obj) {
 
   int ret = munmap(data, MMAP_SIZE(mmap_obj));
   close(fd); /* should be moved back to R */
-  R_ClearExternalPtr(VECTOR_ELT(mmap_obj,0));
+  //R_ClearExternalPtr(VECTOR_ELT(mmap_obj,0));
+  R_ClearExternalPtr(findVar(install("data"),mmap_obj));
+  /*R_ClearExternalPtr(MMAP_DATA(mmap_obj));*/
   return(ScalarInteger(ret)); 
 } /*}}}*/
+
+/*
+void mmap_finalizer (SEXP mmap_obj) {
+  Rprintf("mmap_finalizer called\n");
+  mmap_munmap((SEXP)R_ExternalPtrAddr(mmap_obj));
+}
+*/
 #endif
 
 /* mmap_mmap AND mmap_finalizer {{{ */
@@ -188,20 +197,28 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
 
 
   SEXP mmap_obj;
-  PROTECT(mmap_obj = allocVector(VECSXP,6));
-  /* data pointer    */
-  SET_VECTOR_ELT(mmap_obj, 0, R_MakeExternalPtr(data,R_NilValue,R_NilValue));
-  /* size in bytes   */
-  SET_VECTOR_ELT(mmap_obj, 1, _len);
-  /* file descriptor */
-  SET_VECTOR_ELT(mmap_obj, 2, ScalarInteger((int)hFile));
-  /* storage mode    */
-  SET_VECTOR_ELT(mmap_obj, 3, _type);
-  /* page size       */
-  SET_VECTOR_ELT(mmap_obj, 4, ScalarReal((double)sSysInfo.dwPageSize));
-  /* Map handle */
-  SET_VECTOR_ELT(mmap_obj, 5, ScalarInteger((int)hMap));
+  PROTECT(mmap_obj = allocSExp(ENVSXP));
+  SET_FRAME(mmap_obj, R_NilValue);
+  SET_ENCLOS(mmap_obj, R_NilValue);
+  SET_HASHTAB(mmap_obj, R_NilValue);
+  SET_ATTRIB(mmap_obj, R_NilValue);
+  defineVar(install("data"), R_MakeExternalPtr(data, R_NilValue, R_NilValue),mmap_obj);
+  defineVar(install("bytes"), _len,mmap_obj);
+  defineVar(install("filedesc"), ScalarInteger((int)hFile),mmap_obj);
+  defineVar(install("storage.mode"), _type,mmap_obj);
+  defineVar(install("pagesize"), ScalarReal((double)sSysInfo.dwPageSize),mmap_obj);
+  defineVar(install("handle"), ScalarInteger((int)hMap),mmap_obj);
 
+/*
+  SEXP mmap_obj;
+  PROTECT(mmap_obj = allocVector(VECSXP,6));
+  SET_VECTOR_ELT(mmap_obj, 0, R_MakeExternalPtr(data,R_NilValue,R_NilValue));
+  SET_VECTOR_ELT(mmap_obj, 1, _len);
+  SET_VECTOR_ELT(mmap_obj, 2, ScalarInteger((int)hFile));
+  SET_VECTOR_ELT(mmap_obj, 3, _type);
+  SET_VECTOR_ELT(mmap_obj, 4, ScalarReal((double)sSysInfo.dwPageSize));
+  SET_VECTOR_ELT(mmap_obj, 5, ScalarInteger((int)hMap));
+*/
   UNPROTECT(1);
   return(mmap_obj);
 }
@@ -227,29 +244,32 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
     error("unable to mmap file");
   
   SEXP mmap_obj;
-  PROTECT(mmap_obj = allocVector(VECSXP,5));
-  /* data pointer    */
-  SET_VECTOR_ELT(mmap_obj, 0, R_MakeExternalPtr(data,R_NilValue,R_NilValue));
-  /* size in bytes   */
-  SET_VECTOR_ELT(mmap_obj, 1, _len);               
-  /* file descriptor */
-  SET_VECTOR_ELT(mmap_obj, 2, ScalarInteger(fd));
-  /* storage mode    */
-  SET_VECTOR_ELT(mmap_obj, 3, _type);
-  /* page size       */
-  SET_VECTOR_ELT(mmap_obj, 4, ScalarReal((double)sysconf(_SC_PAGE_SIZE)));   
+  PROTECT(mmap_obj = allocSExp(ENVSXP));
+  SET_FRAME(mmap_obj, R_NilValue);
+  SET_ENCLOS(mmap_obj, R_NilValue);
+  SET_HASHTAB(mmap_obj, R_NilValue);
+  SET_ATTRIB(mmap_obj, R_NilValue);
+  defineVar(install("data"), R_MakeExternalPtr(data, R_NilValue, R_NilValue),mmap_obj);
+  defineVar(install("bytes"), _len,mmap_obj);
+  defineVar(install("filedesc"), ScalarInteger(fd),mmap_obj);
+  defineVar(install("storage.mode"), _type,mmap_obj);
+  defineVar(install("pagesize"), ScalarReal((double)sysconf(_SC_PAGE_SIZE)),mmap_obj);
 
   /*
+  PROTECT(mmap_obj = allocVector(VECSXP,5));
+  SET_VECTOR_ELT(mmap_obj, 0, R_MakeExternalPtr(data,R_NilValue,R_NilValue));
+  SET_VECTOR_ELT(mmap_obj, 1, _len);               
+  SET_VECTOR_ELT(mmap_obj, 2, ScalarInteger(fd));
+  SET_VECTOR_ELT(mmap_obj, 3, _type);
+  SET_VECTOR_ELT(mmap_obj, 4, ScalarReal((double)sysconf(_SC_PAGE_SIZE)));   
+
   need to register a finalizer to munmap in case GC'd
   MM *mm;
   mm = Calloc(1, MM);
   mm[0].data = data;
-  mm[0].size = INTEGER(_len)[0];
+  mm[0].size = (long)REAL(_len)[0];
   mm[0].fd = fd;
-  SEXP mm_ptr = R_MakeExternalPtr(mm,R_NilValue,R_NilValue);
-  PROTECT(mm_ptr);
-
-  R_RegisterCFinalizerEx(mm_ptr, mmap_finalizer, TRUE);
+  R_RegisterCFinalizerEx(R_MakeExternalPtr(&mm,R_NilValue,R_NilValue), mmap_finalizer, TRUE);
   */
   UNPROTECT(1);
   return(mmap_obj);
@@ -397,7 +417,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
   switch(mode) {
   case INTSXP: /* {{{ */
     int_dat = INTEGER(dat);
-    upper_bound = (long)(MMAP_SIZE(mmap_obj)-Cbytes);
+    upper_bound = (long)(MMAP_SIZE(mmap_obj)-Cbytes)/Cbytes;
     switch(Cbytes) {
       case 1: /* 1 byte (signed) char */
         if(isSigned) {
@@ -427,7 +447,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
       case 2: /* 2 byte short */
         if(isSigned) {
         for(i=0;  i < LEN; i++) {
-          ival = (index_p[i]-1)*sizeof(short);
+          ival = (index_p[i]-1);
           if( ival > upper_bound || ival < 0 ) {
             if( ival == 0 ) {
               continue;
@@ -441,7 +461,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
         }
         } else {
         for(i=0;  i < LEN; i++) {
-          ival = (index_p[i]-1)*sizeof(short);
+          ival = (index_p[i]-1);
           if( ival > upper_bound || ival < 0 ) {
             if( ival == 0 ) {
               continue;
@@ -458,7 +478,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
       case 3: /* 3 byte int */
         if(isSigned) {
         for(i=0;  i < LEN; i++) {
-          ival =  (index_p[i]-1)*3;
+          ival =  (index_p[i]-1);
           if( ival > upper_bound || ival < 0 ) {
             if( ival == 0 ) {
               continue;
@@ -478,7 +498,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
         }
         } else { /* 3 byte unsigned */
         for(i=0;  i < LEN; i++) {
-          ival =  (index_p[i]-1)*3;
+          ival =  (index_p[i]-1);
           /* reset int_but to 0 0 0 0 */
           if( ival > upper_bound || ival < 0 ) {
             if( ival == 0 ) {
@@ -495,7 +515,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
         break;
       case 4: /* 4 byte int */
         for(i=0;  i < LEN; i++) {
-          ival =  (index_p[i]-1)*sizeof(int);
+          ival =  (index_p[i]-1);
           if( ival > upper_bound || ival < 0 ) {
             if( ival == 0 ) {
               continue;
@@ -515,7 +535,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
     break; /* }}} */
   case REALSXP: /* {{{ */
     real_dat = REAL(dat);
-    upper_bound = (long)(MMAP_SIZE(mmap_obj)-Cbytes);
+    upper_bound = (long)(MMAP_SIZE(mmap_obj)-Cbytes)/Cbytes;
     switch(Cbytes) {
       case 4: /* 4 byte float */
         for(i=0;  i < LEN; i++) {
@@ -545,7 +565,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
     break; /* }}} */
   case CPLXSXP: /* {{{ */
     complex_dat = COMPLEX(dat);
-    upper_bound = (long)(MMAP_SIZE(mmap_obj)-Cbytes);
+    upper_bound = (long)(MMAP_SIZE(mmap_obj)-Cbytes)/Cbytes;
     for(i=0;  i < LEN; i++) {
       ival = (index_p[i]-1);
       if( ival > upper_bound || ival < 0 )

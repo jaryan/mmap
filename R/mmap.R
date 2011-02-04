@@ -33,11 +33,23 @@ head.mmap <- function(x, n=6L, ...) {
 tail.mmap <- function(x, n=6L, ...) {
   x[(length(x)-n):length(x)]
 }
-str.mmap <- function(object, ...) { 
-  cat("  ",print(object))
-  str(unclass(object)) 
+
+str.mmap <- function (object, ...) 
+{
+    print(object)
+    cat("  data         :") 
+    str(object$data)
+    cat("  bytes        :")
+    str(object$bytes)
+    cat("  filedesc     :")
+    str(object$filedesc)
+    cat("  storage.mode :") 
+    str(object$storage.mode)
+    cat("  pagesize     :")
+    str(object$pagesize)
 }
-summary.mmap <- function(object) { str(unclass(object)) }
+
+summary.mmap <- function(object) { str(object) }
 
 print.mmap <- function(x, ...) {
   stopifnot(is.mmap(x))
@@ -102,11 +114,13 @@ mmap <- function(file, mode=int32(),
                       as.double(len),
                       as.integer(off),
                       PKG="mmap")
-    names(mmap_obj) <- c("data",
-                         "bytes",
-                         "filedesc",
-                         "storage.mode",
-                         "pagesize")
+#    names(mmap_obj) <- c("data",
+#                         "bytes",
+#                         "filedesc",
+#                         "storage.mode",
+#                         "pagesize")
+#    mmap_obj <- list2env(mmap_obj)  # change list to env
+    reg.finalizer(mmap_obj, mmap_finalizer, TRUE)
     mmap_obj$filedesc <- structure(mmap_obj$filedesc, .Names=file)
     mmap_obj$extractFUN <- extractFUN
     mmap_obj$replaceFUN <- replaceFUN
@@ -119,6 +133,11 @@ munmap <- function(x) {
   if(!is.mmap(x))
     stop("mmap object required to munmap")
   invisible(.Call("mmap_munmap", x, PKG="mmap"))
+}
+
+mmap_finalizer <- function(x) {
+  if(is.mmap(x))
+    invisible(.Call("mmap_munmap", x, PKG="mmap"))
 }
 
 msync <- function(x, flags=mmapFlags("MS_ASYNC")) {
@@ -140,7 +159,7 @@ is.mmap <- function(x) {
 }
 
 `[.mmap` <- function(x, i, j, ...) {
-  if(!x[[2]]) stop('no data to extract')
+  if(!x$bytes) stop('no data to extract')
   if(missing(i))
     i <- 1:length(x)
   if(missing(j))
@@ -160,7 +179,7 @@ is.mmap <- function(x) {
 
 `[<-.mmap` <- function(x, i, j, ..., sync=TRUE, value) {
   # add type checking/coercing at the C-level
-  if(!x[[2]]) stop('no data to extract')
+  if(!x$bytes) stop('no data to extract')
   if(is.struct(x$storage.mode) && !is.list(value))
     value <- list(value)
   if(missing(i))
@@ -183,7 +202,7 @@ is.mmap <- function(x) {
 }
 
 length.mmap <- function(x) {
-  size_in_bytes <- x[[2]]
+  size_in_bytes <- x$bytes
   size <- attr(x$storage.mode,"bytes")
   as.integer(size_in_bytes/size)
 }

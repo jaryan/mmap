@@ -382,7 +382,7 @@ m[] <- list(1:100L, sample(1e6,100), rnorm(100))#, ids)
 Now we can extract individual elements of the array of structs.
 
 <<struct_extract>>=
-m <- mmap(tmp, record.type)
+#m <- mmap(tmp, record.type)
 m[1]
 m[1:3]
 m[1:3, "short"]

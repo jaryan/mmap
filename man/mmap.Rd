@@ -14,7 +14,7 @@
 Map And Unmap Pages of Memory
 }
 \description{
-Wrapper to POSIX compliant \sQuote{mmap} system calls.
+Wrapper to POSIX \sQuote{mmap} and Windows MapViewOfFile system calls.
 }
 \usage{
 mmap(file, mode = int32(), 
@@ -46,8 +46,10 @@ mode of data on disk. Use one of
 \sQuote{uint8()} (unsigned char <-> \R integer),
 \sQuote{int16()} (short <-> \R integer),
 \sQuote{uint16()} (unsigned short <-> \R integer),
+\sQuote{int24()} (3 byte integer <-> \R integer),
+\sQuote{uint24()} (unsigned 3 byte integer <-> \R integer),
 \sQuote{int32()} (\R integer),
-\sQuote{real32()} (\R double),
+\sQuote{real32()} (float <-> \R double),
 \sQuote{real64()} (\R double),
 \sQuote{cplx()} (\R complex),
 \sQuote{struct()} (Collection of Ctypes as defined by mmap).
@@ -166,9 +168,6 @@ mmap: \url{http://www.opengroup.org/onlinepubs/000095399/functions/mmap.html}
 }
 \author{
 Jeffrey A. Ryan
-}
-\note{
-This is currently only functional on POSIX compliant systems.
 }
 
 \seealso{

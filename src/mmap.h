@@ -2,8 +2,26 @@
 #include <Rinternals.h>
 #include "config.h"
 
+/*
+  new access macros for environment mmap_obj to facilitate finalizer
+*/
+
+#define MMAP_DATA(mmap_object)        R_ExternalPtrAddr(findVar(install("data"),mmap_object))
+#define MMAP_SIZE(mmap_object)        (long)REAL(findVar(install("bytes"),mmap_object))[0]
+#define MMAP_FD(mmap_object)          INTEGER(findVar(install("filedesc"),mmap_object))[0]
+#define MMAP_MODE(mmap_object)        TYPEOF(findVar(install("storage.mode"),mmap_object))
+#define MMAP_SMODE(mmap_object)       findVar(install("storage.mode"),mmap_object)
+#define MMAP_CBYTES(mmap_object)      INTEGER(getAttrib(findVar(install("storage.mode"), \
+                                        mmap_object),install("bytes")))[0]
+#define MMAP_SIGNED(mmap_object)      INTEGER(getAttrib(findVar(install("storage.mode"), \
+                                        mmap_object),install("signed")))[0]
+#define MMAP_OFFSET(mmap_object,i)      INTEGER(getAttrib(findVar(install("storage.mode"), \
+                                        mmap_object),install("offset")))[i]
+#define MMAP_PAGESIZE(mmap_object)    INTEGER(findVar(install("pagesize"),mmap_object))[0]
+#define MMAP_SYNC(mmap_object)        INTEGER(VECTOR_ELT(mmap_object,4))[0]
+
+/*
 #define MMAP_DATA(mmap_object)        R_ExternalPtrAddr(VECTOR_ELT(mmap_object,0))
-/*#define MMAP_SIZE(mmap_object)        INTEGER(VECTOR_ELT(mmap_object,1))[0]*/
 #define MMAP_SIZE(mmap_object)        (long)REAL(VECTOR_ELT(mmap_object,1))[0]
 #define MMAP_FD(mmap_object)          INTEGER(VECTOR_ELT(mmap_object,2))[0]
 #define MMAP_MODE(mmap_object)        TYPEOF(VECTOR_ELT(mmap_object,3))
@@ -16,8 +34,11 @@
                                         mmap_object,3),install("offset")))[i]
 #define MMAP_PAGESIZE(mmap_object)    INTEGER(VECTOR_ELT(mmap_object,3))[0]
 #define MMAP_SYNC(mmap_object)        INTEGER(VECTOR_ELT(mmap_object,4))[0]
+*/
+
 #ifdef WIN32
-#define MMAP_HANDLE(mmap_object)      INTEGER(VECTOR_ELT(mmap_object,5))[0]
+/*#define MMAP_HANDLE(mmap_object)      INTEGER(VECTOR_ELT(mmap_object,5))[0]*/
+#define MMAP_HANDLE(mmap_object)      INTEGER(findVar(install("handle"),mmap_object))[0]
 /* Definitions from the Linux kernel source 2.6.35.7 */
 #define PROT_READ       0x1             /* page can be read */
 #define PROT_WRITE      0x2             /* page can be written */
