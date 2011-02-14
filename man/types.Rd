@@ -1,6 +1,7 @@
 \name{C_types}
 \alias{types}
 \alias{as.Ctype}
+\alias{is.Ctype}
 \alias{char}
 \alias{uchar}
 \alias{cplx}
@@ -46,11 +47,17 @@ int32(length = 0)
 real32(length = 0)
 real64(length = 0)
 cplx(length = 0)
+
+as.Ctype(x)
+is.Ctype(x)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{length}{
 desired length.
+}
+  \item{x}{
+R object to coerce or test
 }
 }
 \details{

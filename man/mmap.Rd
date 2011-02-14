@@ -9,6 +9,7 @@
 \alias{as.mmap}
 \alias{dim.mmap}
 \alias{tempmmap}
+\alias{pagesize}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Map And Unmap Pages of Memory

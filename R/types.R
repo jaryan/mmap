@@ -8,6 +8,8 @@ as.Ctype <- function(x) {
   UseMethod("as.Ctype")
 }
 
+is.Ctype <- function(x) inherits(x, "Ctype")
+
 as.Ctype.Ctype <- function(x) return(x)
 
 as.Ctype.integer <- function(x) {
@@ -16,9 +18,17 @@ as.Ctype.integer <- function(x) {
   else int32(length(x))
 }
 as.Ctype.double <- function(x) {
-  if(length(x) == 1 && x==0)
-    real64()
-  else real64(length(x))
+  csingle <- attr(x, "Csingle")
+  if( !is.null(csingle) && isTRUE(csingle)) {
+    if(length(x) == 1 && x==0)
+      real32()
+    else
+      real32(length(x))
+  } else {
+    if(length(x) == 1 && x==0)
+      real64()
+    else real64(length(x))
+  }
 }
 as.Ctype.raw <- function(x) {
   if(length(x) == 1 && x==0)
@@ -197,3 +207,33 @@ as.struct.default <- function(x, ...) {
 nbytes <- function(x) UseMethod("nbytes")
 nbytes.Ctype <- function(x) attr(x, "bytes")
 nbytes.mmap <- function(x) x$bytes
+
+##  sizeof analogous to sizeof() in C.  Allows for
+##  passing either Ctype objects, or functions that
+##  construct Ctype objects.
+##    e.g. sizeof(int8) or sizeof(int8())
+
+sizeof <- function(type) {
+  UseMethod("sizeof")
+}
+
+sizeof.function <- function(type) {
+  type_name <- deparse(substitute(type))
+  type <- try(as.Ctype(type()), silent=TRUE)
+  if( is.Ctype(type))
+    nbytes(type)
+  else
+    stop(paste("can't find 'sizeof'",type_name))
+}
+
+sizeof.Ctype <- function(type) {
+  nbytes(type)
+}
+
+sizeof.default <- function(type) {
+  ty <- try( as.Ctype(type), silent=TRUE)
+  if( is.Ctype(ty))
+    sizeof(ty)
+  else
+    stop("unsupported type")
+}

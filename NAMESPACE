@@ -28,9 +28,11 @@ export(
        is.struct,
 
        as.Ctype,
+       is.Ctype,
        nbytes,
 
-       dim.mmap
+       dim.mmap,
+       sizeof
       )
 
 # S3 methods
@@ -53,6 +55,7 @@ S3method(length, mmap)
 S3method(as.mmap, complex)
 S3method(as.mmap, double)
 S3method(as.mmap, integer)
+S3method(as.mmap, character)
 
 # methods to handle conversion to internal Ctype
 S3method("[[<-", struct)
@@ -73,6 +76,10 @@ S3method(as.int24, mmap)
 
 S3method(nbytes, Ctype)
 S3method(nbytes, mmap)
+
+S3method(sizeof, default)
+S3method(sizeof, Ctype)
+S3method(sizeof, "function")
 
 S3method(print, Ctype)
 S3method(as.list, Ctype)

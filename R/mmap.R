@@ -247,6 +247,16 @@ as.mmap.complex <- function(x,
   mmap(file, as.Ctype(mode))
 }
 
+as.mmap.character <- function(x, 
+                              mode=char(nchar(x[1])), 
+                              file=tempmmap(), ...) {
+  if( !all(nchar(x) == nchar(x[1])))
+    stop("only fixed-width characters are supported")
+  #if( !identical(mode, char(nchar(x[1])))){
+  writeBin(x, file, size = nbytes)
+  mmap(file, as.Ctype(mode))
+}
+
 tempmmap <- function(tmpdir=tempdir()) {
   tempfile("mmap",tmpdir)
 }
