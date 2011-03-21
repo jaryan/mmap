@@ -31,8 +31,12 @@ export(
        is.Ctype,
        nbytes,
 
-       dim.mmap,
-       sizeof
+       dim.mmap, "dim<-.mmap",
+       dimnames.mmap, "dimnames<-.mmap",
+       is.array.mmap,
+       sizeof,
+
+       make.fixedwidth
       )
 
 # S3 methods
@@ -52,10 +56,15 @@ S3method(str,mmap)
 S3method(print,mmap)
 S3method(length, mmap)
 
+S3method(as.mmap, raw)
 S3method(as.mmap, complex)
 S3method(as.mmap, double)
 S3method(as.mmap, integer)
 S3method(as.mmap, character)
+
+# R object default conversion
+S3method(as.mmap, matrix)
+S3method(as.mmap, data.frame)
 
 # methods to handle conversion to internal Ctype
 S3method("[[<-", struct)

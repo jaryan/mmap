@@ -8,6 +8,10 @@
 \alias{is.mmap}
 \alias{as.mmap}
 \alias{dim.mmap}
+\alias{dim<-.mmap}
+\alias{dimnames.mmap}
+\alias{dimnames<-.mmap}
+\alias{is.array.mmap}
 \alias{tempmmap}
 \alias{pagesize}
 %- Also NEED an '\alias' for EACH other topic documented here.
@@ -103,8 +107,11 @@ a function to apply upon extraction or replacement.
 }
 \details{
 The general semantics of the R function map to
-the underlying POSIX C function call. The notable
-exception is the use of \code{file} in place of
+the underlying operating system C function call. 
+On unix-alikes this is \sQuote{mmap}, on Windows
+similar functionality is provided by the
+system call \sQuote{MapViewOfFile}. The notable
+exception is the use of the R argument \code{file} in place of
 \code{void *addr} and \code{int fildes}.  Additionally
 \code{len} and \code{off} arguments are
 made available to the R level call, though require
@@ -116,24 +123,35 @@ converted to mmapped version on-disk.  The files are
 stored in the location specified by \code{file}.
 Passing an object that has an appropriate
 as.mmap method will allow \R objects to be automatically
-created as memory-mapped object.  Additional methods
-may be defined to support complex data objects.
+created as memory-mapped object.  
+This works for most atomic types in R, including
+numeric, complex, and character vectors. A special note
+on character vectors: as the implementation requires
+a constant number of bytes per element, each element
+must be of the same width. See \code{as.mmap.character}
+for more details.
+
+Complex data types, such as 2 dimesioned vectors (matrix)
+and data.frames can be supported using appropriate
+\code{extractFUN} and \code{replaceFUN} functions to convert
+the raw data.  Basic object conversion is made available
+in included \code{as.mmap} methods for boths types as of
+version 0.6-3.
 
 All mode types are defined for single-column atomic
 data, with the exception of structs.  Multiple column
-objects are not explicitely supported, instead a mapping
-should be made for each column of the original object.
-Future versions will likely abstract this to allow for
-single columns per file, but the resultant mmap object
-in \R will hide the underlying seperation.
+objects are supported by the use of setting \code{dim}.
+All data is column major. Row major orientation, as well
+as supporting multiple types in one object - imitating
+a data.frame, is supported via the \code{struct} mode. 
 
 Using \code{struct} as the mode will organize the
-binary data on-disk (or read data organized on disk) in
+binary data on-disk (or more correctly read data organized on disk) in
 a row-major orientation.  This is similar to how a row
 database would be oriented, and will provide faster
-access to data that is typically viewed together.
+access to data that is typically viewed by row.
 See \code{help(struct)} for examples of semantics as well
-as performance.
+as performance comparisons.
 }
 \value{
 The mmap and as.mmap call
@@ -187,6 +205,12 @@ ints[]
 ints[22]
 ints[21:23] <- c(0,0,0)
 ints[]  # changes are now on disk
+
+# add dimension
+dim(ints) <- c(10,10)
+ints[]
+ints[6,2] # 6th row of 2nd column
+ints[ ,2] # entire 2nd column
 munmap(ints)
 
 # store Dates as natural-size 'int' on disk
@@ -201,5 +225,9 @@ num[]
 munmap(num)
 
 unlink(tmp)
+
+# convert via as.mmap munmap
+int <- as.mmap(1:10L)
+num <- as.mmap(rnorm(10))
 }
 \keyword{ utilities }

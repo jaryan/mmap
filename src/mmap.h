@@ -18,6 +18,7 @@
 #define MMAP_OFFSET(mmap_object,i)      INTEGER(getAttrib(findVar(install("storage.mode"), \
                                         mmap_object),install("offset")))[i]
 #define MMAP_PAGESIZE(mmap_object)    INTEGER(findVar(install("pagesize"),mmap_object))[0]
+#define MMAP_DIM(mmap_object)         findVar(install("dim"),mmap_object)
 #define MMAP_SYNC(mmap_object)        INTEGER(VECTOR_ELT(mmap_object,4))[0]
 
 /*

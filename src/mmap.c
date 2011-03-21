@@ -208,6 +208,7 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   defineVar(install("storage.mode"), _type,mmap_obj);
   defineVar(install("pagesize"), ScalarReal((double)sSysInfo.dwPageSize),mmap_obj);
   defineVar(install("handle"), ScalarInteger((int)hMap),mmap_obj);
+  defineVar(install("dim"), R_NilValue ,mmap_obj);
 
 /*
   SEXP mmap_obj;
@@ -254,6 +255,7 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   defineVar(install("filedesc"), ScalarInteger(fd),mmap_obj);
   defineVar(install("storage.mode"), _type,mmap_obj);
   defineVar(install("pagesize"), ScalarReal((double)sysconf(_SC_PAGE_SIZE)),mmap_obj);
+  defineVar(install("dim"), R_NilValue ,mmap_obj);
 
   /*
   PROTECT(mmap_obj = allocVector(VECSXP,5));
@@ -356,7 +358,7 @@ SEXP mmap_mprotect (SEXP mmap_obj, SEXP index, SEXP prot) {
 }/*}}}*/
 
 /* {{{ mmap_extract */
-SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
+SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
 /*SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {*/
   long v, fi, i, ii, ival;
   int P=0;
@@ -743,6 +745,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP mmap_obj) {
     break;
   }
   UNPROTECT(P);
+  if( !isNull(dim))
+    setAttrib(dat, R_DimSymbol, dim);
   return dat;
 }/*}}}*/
 

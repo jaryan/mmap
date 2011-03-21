@@ -237,3 +237,17 @@ sizeof.default <- function(type) {
   else
     stop("unsupported type")
 }
+
+# convert non-fixed width strings to fw for mmap
+make.fixedwidth <- function(x, width=NA, justify=c("left","right")) {
+  if( !is.character(x))
+    stop("'x' must be a character vector")
+  if(is.na(width))
+    width <- max(nchar(x))
+  justify <- match.arg(justify)
+  if(justify=="left")
+    fmt <- "%-"
+  else fmt <- "%"
+  sprintf(paste(fmt,width,"s",sep=""), x)  # e.g. "%-9s"
+}
+
