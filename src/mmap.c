@@ -1596,3 +1596,24 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
   return ScalarInteger(hits);
 }/*}}}*/
 
+SEXP convert_ij_to_i (SEXP rows, SEXP i, SEXP j) {
+  int n=0, jj, ii, lenj=length(j), leni=length(i);
+  int _rows = INTEGER(rows)[0];
+  SEXP newi;
+  int *_j, *_i, *_newi;
+
+  _j = INTEGER(j);
+  _i = INTEGER(i);
+
+  PROTECT( newi = allocVector(INTSXP, leni * lenj));
+  _newi = INTEGER(newi); 
+
+  for(jj=0; jj<lenj; jj++) {
+    for(ii=0; ii<leni; ii++) {
+      _newi[n++] = (_j[jj] - 1) * _rows + _i[ii];
+    }
+  }
+
+  UNPROTECT(1);
+  return newi;
+}

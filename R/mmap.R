@@ -181,7 +181,8 @@ is.mmap <- function(x) {
     if( missing(j))
       j <- 1:dim(x)[2]
     DIM <- c(length(i),length(j))
-    i <- as.integer(sapply(j, function(J) (J-1)*dim(x)[1] + i))
+    #i <- as.integer(sapply(j, function(J) (J-1)*dim(x)[1] + i))
+    i <- .Call("convert_ij_to_i", dim(x)[1], as.integer(i), as.integer(j))
     j <- 1L
   }
   j <- j[j>0] # only positive values
