@@ -181,15 +181,11 @@ is.mmap <- function(x) {
     if( missing(j))
       j <- 1:dim(x)[2]
     DIM <- c(length(i),length(j))
-    #i <- as.integer(sapply(j, function(J) (J-1)*dim(x)[1] + i))
     i <- .Call("convert_ij_to_i", dim(x)[1], as.integer(i), as.integer(j))
     j <- 1L
   }
   j <- j[j>0] # only positive values
   xx <- .Call("mmap_extract", i, as.integer(j), DIM, x, PKG="mmap")
-  #if( !is.struct(x$storage.mode) && !is.null(x$dim))
-  #  dim(xx) <- DIM
-
   names(xx) <- names(x$storage.mode)[j]
   if(is.null(extractFUN(x))) {
     xx
@@ -201,16 +197,29 @@ is.mmap <- function(x) {
   if(!x$bytes) stop('no data to extract')
   if(is.struct(x$storage.mode) && !is.list(value))
     value <- list(value)
-  if(missing(i))
-    i <- 1:length(x)
-  if(missing(j))
-    j <- 1:length(x$storage.mode)
-  if(is.character(j))
-    j <- match(j, names(x$storage.mode))
-  if(length(i) != length(value))
-    if(is.list(value))
-      value <- lapply(value, rep, length.out=length(i))
-    else value <- rep(value, length.out=length(i))
+  if( is.struct(x$storage.mode) || is.null(x$dim)) {
+    if(missing(i))
+      i <- 1:length(x)
+    if(missing(j))
+      j <- 1:length(x$storage.mode)
+    if(is.character(j))
+      j <- match(j, names(x$storage.mode))
+    if(length(i) != length(value))
+      if(is.list(value))
+        value <- lapply(value, rep, length.out=length(i))
+      else value <- rep(value, length.out=length(i))
+  } else { # has dimension
+    if(missing(i))
+      i <- 1:dim(x)[1]
+    if(missing(j))
+      j <- 1:dim(x)[2]
+    if(is.character(j))
+      j <- match(j, names(x$dimnames))
+    i <- .Call("convert_ij_to_i", dim(x)[1], as.integer(i), as.integer(j))
+    j <- 1L
+    if(length(i) != length(value))
+      value <- rep(value, length.out=length(i))
+  }
 # likely we need to check for list()/struct to correctly handle in C
   if(max(i) > length(x) || min(i) < 0)
     stop("improper 'i' range")

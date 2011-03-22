@@ -744,9 +744,9 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
     error("unsupported type");
     break;
   }
-  UNPROTECT(P);
   if( !isNull(dim))
     setAttrib(dat, R_DimSymbol, dim);
+  UNPROTECT(P);
   return dat;
 }/*}}}*/
 
