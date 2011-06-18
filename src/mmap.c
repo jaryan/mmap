@@ -235,7 +235,7 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   if(fd < 0)
     error("unable to open file");
   data = mmap((caddr_t)0, 
-              (long)REAL(_len)[0], 
+              (size_t)REAL(_len)[0], 
               INTEGER(_prot)[0], 
               INTEGER(_flags)[0], 
               fd, 
@@ -334,7 +334,8 @@ SEXP mmap_madvise (SEXP mmap_obj, SEXP _len, SEXP _flags) {
 
 /* {{{ mmap_mprotect */
 SEXP mmap_mprotect (SEXP mmap_obj, SEXP index, SEXP prot) {
-  int i, ival, upper_bound, LEN;
+  int i, LEN;
+  size_t ival, upper_bound;
   char *data, *addr;
 
   data = MMAP_DATA(mmap_obj);
@@ -343,7 +344,7 @@ SEXP mmap_mprotect (SEXP mmap_obj, SEXP index, SEXP prot) {
   SEXP ret; PROTECT(ret = allocVector(INTSXP, LEN));
   int pagesize = MMAP_PAGESIZE(mmap_obj);
   
-  upper_bound = (int)(MMAP_SIZE(mmap_obj)-sizeof(int));
+  upper_bound = (MMAP_SIZE(mmap_obj)-sizeof(int));
   for(i=0;i<LEN;i++) {
     ival = (INTEGER(index)[i]-1)*sizeof(int);
     if( ival > upper_bound || ival < 0 )
@@ -419,7 +420,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
   switch(mode) {
   case INTSXP: /* {{{ */
     int_dat = INTEGER(dat);
-    upper_bound = (long)(MMAP_SIZE(mmap_obj)-Cbytes)/Cbytes;
+    upper_bound = (MMAP_SIZE(mmap_obj)-Cbytes)/Cbytes;
     switch(Cbytes) {
       case 1: /* 1 byte (signed) char */
         if(isSigned) {
@@ -537,7 +538,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
     break; /* }}} */
   case REALSXP: /* {{{ */
     real_dat = REAL(dat);
-    upper_bound = (long)(MMAP_SIZE(mmap_obj)-Cbytes)/Cbytes;
+    upper_bound = (MMAP_SIZE(mmap_obj)-Cbytes)/Cbytes;
     switch(Cbytes) {
       case 4: /* 4 byte float */
         for(i=0;  i < LEN; i++) {
@@ -567,7 +568,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
     break; /* }}} */
   case CPLXSXP: /* {{{ */
     complex_dat = COMPLEX(dat);
-    upper_bound = (long)(MMAP_SIZE(mmap_obj)-Cbytes)/Cbytes;
+    upper_bound = (MMAP_SIZE(mmap_obj)-Cbytes)/Cbytes;
     for(i=0;  i < LEN; i++) {
       ival = (index_p[i]-1);
       if( ival > upper_bound || ival < 0 )
@@ -591,7 +592,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
   case RAWSXP: /* {{{ */
     raw_dat = RAW(dat);
 // differ in signess???
-    upper_bound = (int)(MMAP_SIZE(mmap_obj)-1);
+    upper_bound = (MMAP_SIZE(mmap_obj)-1);
     for(i=0;  i < LEN; i++) {
       ival =  (index_p[i]-1);
       if( ival > upper_bound || ival < 0 )
@@ -752,7 +753,9 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
 
 /* mmap_replace {{{ */
 SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
-  int i, upper_bound, ival;
+/*  int i, upper_bound, ival; */
+  int i;
+  size_t upper_bound, ival;
   int v, fi, offset, fieldCbytes, fieldSigned;
   char *data;
   int LEN = length(index);  
@@ -781,7 +784,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
   switch(mode) {
   case INTSXP: /* {{{ */
     int_value = INTEGER(value);
-    upper_bound = (int)(MMAP_SIZE(mmap_obj)-Cbytes);
+    upper_bound = (MMAP_SIZE(mmap_obj)-Cbytes); 
     switch(Cbytes) {
       case sizeof(char): /* 1 byte char */
       /*
@@ -856,7 +859,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
     break; /* }}} */
   case REALSXP: /* {{{ */
     real_value = REAL(value);
-    upper_bound = (int)(MMAP_SIZE(mmap_obj)-Cbytes);
+    upper_bound = (MMAP_SIZE(mmap_obj)-Cbytes);
     switch(Cbytes) {
       case sizeof(float): /* 4 byte float */
       for(i=0;  i < LEN; i++) {
