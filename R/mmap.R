@@ -235,6 +235,17 @@ length.mmap <- function(x) {
   as.integer(size_in_bytes/size)
 }
 
+`length<-.mmap` <- function(x, value) {
+  # should have some mechanism to sanity check length
+  # as to not pass end of file
+  size_in_bytes <- value * attr(x$storage.mode, "bytes")
+  if(file.info(names(x$filedesc))$size < size_in_bytes) {
+    stop("cannot increase an mmap file's size") # implement something automatic here
+  }
+  x$bytes <- as.double(size_in_bytes)
+  x 
+}
+
 
 # coerce to disk object and mmap back in.  Need
 # to register a proper finalizer in the C code, else

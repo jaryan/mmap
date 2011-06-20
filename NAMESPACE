@@ -55,6 +55,7 @@ S3method(close,mmap)
 S3method(str,mmap)
 S3method(print,mmap)
 S3method(length, mmap)
+S3method('length<-', mmap)
 
 S3method(as.mmap, raw)
 S3method(as.mmap, complex)
