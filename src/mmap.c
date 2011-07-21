@@ -518,6 +518,17 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
         }
         break;
       case 4: /* 4 byte int */
+        /* 
+          bitvec support for 1-bit logical vectors
+          At some level it seems like this is desirable, but it
+          may be just as easy and more maintainable if we simply
+          extract the entire integer vector and coerce to logical
+          within R if and when appropriate.
+
+          This would allow for identical 32:1 gains
+          in compression, but would also let external packages manipulate
+          the bit structures.
+        */
         for(i=0;  i < LEN; i++) {
           ival =  (index_p[i]-1);
           if( ival > upper_bound || ival < 0 ) {

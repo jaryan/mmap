@@ -18,7 +18,7 @@ export(
        replaceFUN, "replaceFUN<-",
 
        char,  int8,  int16,  int24,  int32,  
-       uchar, uint8, uint16, uint24,
+       uchar, uint8, uint16, uint24, int64,
        real32, real64,
        cplx,
        as.uchar, as.char, as.int8, as.uint8, as.int16, as.uint16, as.int24,

@@ -12,6 +12,7 @@
 \alias{int24}
 \alias{uint24}
 \alias{int32}
+\alias{int64}
 \alias{real32}
 \alias{real64}
 \alias{as.char}
@@ -44,6 +45,7 @@ uint16(length = 0)
 int24(length = 0)
 uint24(length = 0)
 int32(length = 0)
+int64(length = 0)
 real32(length = 0)
 real64(length = 0)
 cplx(length = 0)
@@ -149,6 +151,15 @@ writeBin(1:10L, tmp, size=4L)
 four_byte <- mmap(tmp, int32())
 four_byte[]
 munmap(four_byte)
+
+# write 32 bit integers as 64 bit longs (where supported)
+int64()  # note it is a double in R, but described as int64
+writeBin(1:10L, tmp, size=8L)
+eight_byte <- mmap(tmp, int64())
+storage.mode(eight_byte[])  # using R doubles to preserve most long values
+eight_byte[5] <- 2^40  # write as a long, a value in R that is double
+eight_byte[5]
+munmap(eight_byte)
 
 unlink(tmp)
 }
