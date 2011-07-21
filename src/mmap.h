@@ -11,6 +11,8 @@
 #define MMAP_FD(mmap_object)          INTEGER(findVar(install("filedesc"),mmap_object))[0]
 #define MMAP_MODE(mmap_object)        TYPEOF(findVar(install("storage.mode"),mmap_object))
 #define MMAP_SMODE(mmap_object)       findVar(install("storage.mode"),mmap_object)
+#define MMAP_CTYPE(mmap_object)       CHAR(STRING_ELT(getAttrib(findVar(install("storage.mode"), \
+                                        mmap_object), R_ClassSymbol),1))
 #define MMAP_CBYTES(mmap_object)      INTEGER(getAttrib(findVar(install("storage.mode"), \
                                         mmap_object),install("bytes")))[0]
 #define MMAP_SIGNED(mmap_object)      INTEGER(getAttrib(findVar(install("storage.mode"), \

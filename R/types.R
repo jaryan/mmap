@@ -127,6 +127,12 @@ int32 <- C_int <- function(length=0) {
   structure(integer(length), bytes=4L, signed=1L, class=c("Ctype","int"))
 }
 
+int64 <- C_int64 <- function(length=0) {
+  # currently untested and experimental. Will lose precision in R though we cast
+  # to a double precision float to minimize the damage
+  structure(double(length), bytes=8L, signed=1L, class=c("Ctype","int64"))
+}
+
 uint32 <- C_uint <- function(length=0) {
   structure(integer(length), bytes=4L, signed=0L, class=c("Ctype","uint"))
 }

@@ -293,9 +293,12 @@ as.mmap.complex <- function(x,
 
 as.mmap.character <- function(x, 
                               mode=char(nchar(x[1])), 
-                              file=tempmmap(), ...) {
-  if( !all(nchar(x) == nchar(x[1])))
-    stop("requires fixed-width character vector. Use make.fixedwidth first.")
+                              file=tempmmap(), force=FALSE, ...) {
+  if( !all(nchar(x) == nchar(x[1]))) {
+    if(!force)
+      stop("requires fixed-width character vector. Use make.fixedwidth first.")
+    x <- make.fixedwidth(x)
+  }
   #if( !identical(mode, char(nchar(x[1])))){
   writeBin(x, file, size = nbytes)
   mmap(file, as.Ctype(mode))

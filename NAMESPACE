@@ -36,7 +36,9 @@ export(
        is.array.mmap,
        sizeof,
 
-       make.fixedwidth
+       make.fixedwidth,
+
+       mmap.csv
       )
 
 # S3 methods
