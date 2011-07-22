@@ -149,12 +149,33 @@ cplx <- C_complex <- function(length=0) {
   structure(complex(length),  bytes=16L, signed=1L, class=c("Ctype","complex"))
 }
 
-struct <- as.list.Ctype <- function(...) {
-  dots <- lapply(list(...),as.Ctype)
-  bytes <- sapply(dots, attr, which="bytes")
-  structure(dots, bytes=sum(bytes), offset=cumsum(bytes)-bytes,
-            signed=NA, class=c("Ctype","struct"))
+.struct <- function (..., bytes, offset) {
+    dots <- lapply(list(...), as.Ctype)
+    if( missing(bytes))
+      bytes <- sapply(dots, attr, which = "bytes")
+    if( missing(offset))
+      offset <- cumsum(bytes) - bytes
+    structure(dots, bytes = as.integer(sum(bytes)), 
+                    offset = as.integer(offset), 
+                    signed = NA, 
+              class = c("Ctype", "struct"))
 }
+
+struct <- function (..., bytes, offset) {
+    dots <- lapply(list(...), as.Ctype)
+    bytes_ <- sapply(dots, attr, which = "bytes")
+    if (missing(offset)) 
+      offset <- cumsum(bytes_) - bytes_
+    if (!missing(bytes)) 
+      bytes_ <- bytes
+    structure(dots, bytes = as.integer(sum(bytes_)), 
+                    offset = as.integer(offset), 
+                    signed = NA, 
+              class = c("Ctype", "struct"))
+}
+
+as.list.Ctype <- struct
+
 
 `[[<-.struct` <- function(x,i,value) {
   x <- unclass(x)
