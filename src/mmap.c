@@ -370,7 +370,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
   char *int24_buf[4],
        *uint24_buf[4];
   memset(int24_buf, 0, 4);
-  memset(uint24_buf, 0xFF, 4);
+  memset(uint24_buf, 0xFF, 4); /* used to convert overflow to negative */
 
   PROTECT(index = coerceVector(index,INTSXP)); P++;
   int LEN = length(index);  
@@ -493,9 +493,14 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
                  3);
-          int_dat[i] = (int)*((int *)(void *)&int24_buf);
-          //int_dat[i] = (int)*(int *)(int24_buf);
-          /* int_dat[i] = (int)*((int *)(void *)&uint24_buf); */
+          int_dat[i] = *((int *)(void *)&int24_buf);
+          if(int_dat[i] > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+            memcpy(uint24_buf, 
+                   &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
+                   3);
+            /*int_dat[i] = (int)*(int *)(uint24_buf);*/
+            int_dat[i] = *((int *)(void *)&uint24_buf);
+          }
         }
         } else { /* 3 byte unsigned */
         for(i=0;  i < LEN; i++) {
@@ -506,18 +511,11 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             }
             error("'i=%i' out of bounds", index_p[i]);
           }
-          memcpy(uint24_buf, 
+          memcpy(int24_buf, 
                  &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
                  3);
           //int_dat[i] = (int)*(int *)(int24_buf);
-          int_dat[i] = (int)*((int *)(void *)&uint24_buf);
-          if(int_dat[i] > 8388607) {  /* MAX 3 byte unsigned INTEGER */
-            memcpy(uint24_buf, 
-                   &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
-                   3);
-            /*int_dat[i] = (int)*(int *)(uint24_buf);*/
-            int_dat[i] = (int)*((int *)(void *)&uint24_buf);
-          }
+          int_dat[i] = *((int *)(void *)&int24_buf);
         }
         }
         break;
@@ -1317,10 +1315,10 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
             memcpy(uint24_buf, 
                    &(data[i*3]), /* copy first 3 bytes */
                    3);
-            if(cmp_to_int == (int)*((int *)(void *)&uint24_buf))
+            if(cmp_to_int == *((int *)(void *)&uint24_buf))
               int_result[hits++] = i+1;
           } else {
-            if(cmp_to_int == (int)*(int *)(int24_buf)) 
+            if(cmp_to_int == *((int *)(void *)&int24_buf)) 
               int_result[hits++] = i+1;
           }
         }
@@ -1330,14 +1328,14 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if((int)*(int *)(int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+          if(*((int *)(void *)&int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
             memcpy(uint24_buf, 
                    &(data[i*3]), /* copy first 3 bytes */
                    3);
-            if(cmp_to_int != (int)*(int *)(uint24_buf)) 
+            if(cmp_to_int != *((int *)(void *)&uint24_buf)) 
               int_result[hits++] = i+1;
           } else {
-            if(cmp_to_int != (int)*(int *)(int24_buf)) 
+            if(cmp_to_int != *((int *)(void *)&int24_buf)) 
               int_result[hits++] = i+1;
           }
         }
@@ -1347,14 +1345,14 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if((int)*(int *)(int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+          if(*((int *)(void *)&int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
             memcpy(uint24_buf, 
                    &(data[i*3]), /* copy first 3 bytes */
                    3);
-            if(cmp_to_int <= (int)*(int *)(uint24_buf)) 
+            if(cmp_to_int <= *((int *)(void *)&uint24_buf)) 
               int_result[hits++] = i+1;
           } else {
-            if(cmp_to_int <= (int)*(int *)(int24_buf)) 
+            if(cmp_to_int <= *((int *)(void *)&int24_buf)) 
               int_result[hits++] = i+1;
           }
         }
@@ -1364,14 +1362,14 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if((int)*(int *)(int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+          if(*((int *)(void *)&int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
             memcpy(uint24_buf, 
                    &(data[i*3]), /* copy first 3 bytes */
                    3);
-            if(cmp_to_int >= (int)*(int *)(uint24_buf)) 
+            if(cmp_to_int >= *((int *)(void *)&uint24_buf)) 
               int_result[hits++] = i+1;
           } else {
-            if(cmp_to_int >= (int)*(int *)(int24_buf)) 
+            if(cmp_to_int >= *((int *)(void *)&int24_buf)) 
               int_result[hits++] = i+1;
           }
         }
@@ -1381,14 +1379,14 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if((int)*(int *)(int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+          if(*((int *)(void *)&int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
             memcpy(uint24_buf, 
                    &(data[i*3]), /* copy first 3 bytes */
                    3);
-            if(cmp_to_int < (int)*(int *)(uint24_buf)) 
+            if(cmp_to_int < *((int *)(void *)&uint24_buf)) 
               int_result[hits++] = i+1;
           } else {
-            if(cmp_to_int < (int)*(int *)(int24_buf)) 
+            if(cmp_to_int < *((int *)(void *)&int24_buf)) 
               int_result[hits++] = i+1;
           }
         }
@@ -1398,14 +1396,14 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if((int)*(int *)(int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+          if(*((int *)(void *)&int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
             memcpy(uint24_buf, 
                    &(data[i*3]), /* copy first 3 bytes */
                    3);
-            if(cmp_to_int > (int)*(int *)(uint24_buf)) 
+            if(cmp_to_int > *((int *)(void *)&uint24_buf)) 
               int_result[hits++] = i+1;
           } else {
-            if(cmp_to_int > (int)*(int *)(int24_buf)) 
+            if(cmp_to_int > *((int *)(void *)&int24_buf)) 
               int_result[hits++] = i+1;
           }
         }
@@ -1416,7 +1414,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(cmp_to_int == (int)*(int *)(int24_buf))
+          if(cmp_to_int == *((int *)(void *)&int24_buf))
             int_result[hits++] = i+1;
         }
       } else
@@ -1425,7 +1423,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(cmp_to_int != (int)*(int *)(int24_buf))
+          if(cmp_to_int != *((int *)(void *)&int24_buf))
             int_result[hits++] = i+1;
         }
       } else
@@ -1434,7 +1432,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(cmp_to_int <= (int)*(int *)(int24_buf))
+          if(cmp_to_int <= *((int *)(void *)&int24_buf))
             int_result[hits++] = i+1;
         }
       } else
@@ -1443,7 +1441,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(cmp_to_int >= (int)*(int *)(int24_buf))
+          if(cmp_to_int >= *((int *)(void *)&int24_buf))
             int_result[hits++] = i+1;
         }
       } else
@@ -1452,7 +1450,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(cmp_to_int <  (int)*(int *)(int24_buf))
+          if(cmp_to_int <  *((int *)(void *)&int24_buf))
             int_result[hits++] = i+1;
         }
       } else
@@ -1461,7 +1459,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(cmp_to_int >  (int)*(int *)(int24_buf))
+          if(cmp_to_int >  *((int *)(void *)&int24_buf))
             int_result[hits++] = i+1;
         }
       } /* end of unsigned 3 byte */
