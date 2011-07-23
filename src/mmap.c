@@ -461,7 +461,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           memcpy(short_buf, 
                  &(data[(index_p[i]-1)*sizeof(short)]),
                  sizeof(char)*sizeof(short));
-          int_dat[i] = (int)(short)*(short *)(short_buf); 
+          /*int_dat[i] = (int)(short)*(short *)(short_buf); */
+          int_dat[i] = (int)*((short *)short_buf); 
         }
         } else {
         for(i=0;  i < LEN; i++) {
