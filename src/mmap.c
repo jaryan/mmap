@@ -368,10 +368,9 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
   /* 24 bit integers require a mask of the depending
      on whether the type is signed or unsigned */
   char *int24_buf[4],
-       *uint24_buf[4];  
+       *uint24_buf[4];
   memset(int24_buf, 0, 4);
   memset(uint24_buf, 0xFF, 4);
-
 
   PROTECT(index = coerceVector(index,INTSXP)); P++;
   int LEN = length(index);  
@@ -462,7 +461,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                  &(data[(index_p[i]-1)*sizeof(short)]),
                  sizeof(char)*sizeof(short));
           /*int_dat[i] = (int)(short)*(short *)(short_buf); */
-          int_dat[i] = (int)*((short *)short_buf); 
+          int_dat[i] = (int)*((short *)(void *)&short_buf); 
         }
         } else {
         for(i=0;  i < LEN; i++) {
@@ -476,7 +475,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           memcpy(short_buf, 
                  &(data[(index_p[i]-1)*sizeof(short)]),
                  sizeof(char)*sizeof(short));
-          int_dat[i] = (int)(unsigned short)*(unsigned short *)(short_buf); 
+          /*int_dat[i] = (int)(unsigned short)*(unsigned short *)(short_buf); */
+          int_dat[i] = (int)*((unsigned short *)(void *)&short_buf); 
         }  
         }
         break;
@@ -493,28 +493,31 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
                  3);
-          int_dat[i] = (int)*(int *)(int24_buf); 
-          if(int_dat[i] > 8388607) {  /* MAX 3 byte unsigned INTEGER */
-            memcpy(uint24_buf, 
-                   &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
-                   3);
-            int_dat[i] = (int)*(int *)(uint24_buf); 
-          }
+          int_dat[i] = (int)*((int *)(void *)&int24_buf);
+          //int_dat[i] = (int)*(int *)(int24_buf);
+          /* int_dat[i] = (int)*((int *)(void *)&uint24_buf); */
         }
         } else { /* 3 byte unsigned */
         for(i=0;  i < LEN; i++) {
           ival =  (index_p[i]-1);
-          /* reset int_but to 0 0 0 0 */
           if( ival > upper_bound || ival < 0 ) {
             if( ival == 0 ) {
               continue;
             }
             error("'i=%i' out of bounds", index_p[i]);
           }
-          memcpy(int24_buf, 
+          memcpy(uint24_buf, 
                  &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
                  3);
-          int_dat[i] = (int)*(int *)(int24_buf); 
+          //int_dat[i] = (int)*(int *)(int24_buf);
+          int_dat[i] = (int)*((int *)(void *)&uint24_buf);
+          if(int_dat[i] > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+            memcpy(uint24_buf, 
+                   &(data[(index_p[i]-1)*3]), /* copy first 3 bytes */
+                   3);
+            /*int_dat[i] = (int)*(int *)(uint24_buf);*/
+            int_dat[i] = (int)*((int *)(void *)&uint24_buf);
+          }
         }
         }
         break;
@@ -541,7 +544,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           memcpy(int_buf, 
                  &(data[(index_p[i]-1)*sizeof(int)]),
                  sizeof(char)*sizeof(int));
-          int_dat[i] = (int)*(int *)(int_buf); 
+          /*int_dat[i] = (int)*(int *)(int_buf); */
+          int_dat[i] = (int)*((int *)(void *)&int_buf); 
         }
         break;
       default:
@@ -561,7 +565,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           memcpy(float_buf, 
                  &(data[(index_p[i]-1)*sizeof(float)]), 
                  sizeof(char)*sizeof(float));
-          real_dat[i] = (double)(float)*(float *)(float_buf); 
+          /*real_dat[i] = (double)(float)*(float *)(float_buf); */
+          real_dat[i] = (double)(float)*((float *)(void *)&float_buf); 
         }
         break;
       case 8: /* 8 byte double or (double)int64 */
@@ -574,7 +579,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             memcpy(long_buf, 
                    &(data[(index_p[i]-1)*sizeof(long)]), 
                    sizeof(char)*sizeof(long));
-            real_dat[i] = (double)*(long *)(long_buf); 
+            /*real_dat[i] = (double)*(long *)(long_buf); */
+            real_dat[i] = (double)*((long *)(void *)&long_buf); 
           }
         } else {
         for(i=0;  i < LEN; i++) {
@@ -584,7 +590,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           memcpy(real_buf, 
                  &(data[(index_p[i]-1)*sizeof(double)]), 
                  sizeof(char)*sizeof(double));
-          real_dat[i] = (double)*(double *)(real_buf); 
+          /*real_dat[i] = (double)*(double *)(real_buf); */
+          real_dat[i] = (double)*((double *)(void *)&real_buf); 
         }
         }
         break;
@@ -603,7 +610,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
              &(data[(index_p[i]-1)*sizeof(Rcomplex)]), 
              sizeof(char)*sizeof(Rcomplex));
       //complex_dat[i] = (Rcomplex)*(Rcomplex *)(complex_buf); 
-      complex_dat[i] = *(Rcomplex *)(complex_buf); 
+      /*complex_dat[i] = *(Rcomplex *)(complex_buf); */
+      complex_dat[i] = *((Rcomplex *)(void *)&complex_buf); 
     }
     break; /* }}} */
   case STRSXP: /* {{{ */
@@ -680,14 +688,14 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
               memcpy(int_buf, 
                      &(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(short));
-              int_vec_dat[ii] = (int)*(short *)(int_buf); 
+              int_vec_dat[ii] = (int)*((short *)(void *)&int_buf); 
             }
             } else {            /* 2 byte unsigned short */
             for(ii=0; ii<LEN; ii++) {
               memcpy(int_buf, 
                      &(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(short));
-              int_vec_dat[ii] = (int)*(unsigned short *)(int_buf); 
+              int_vec_dat[ii] = (int)*((unsigned short *)(void *)&int_buf); 
             }
             }
             break;
@@ -699,7 +707,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
               memcpy(int_buf, 
                      &(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(int));
-              int_vec_dat[ii] = (int)*(int *)(int_buf); 
+              int_vec_dat[ii] = (int)*((int *)(void *)&int_buf); 
             }
             break;
           }
@@ -716,7 +724,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
               memcpy(float_buf, 
                      &(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(float));
-              real_vec_dat[ii] = (double)(float)*(float *)(float_buf); 
+              real_vec_dat[ii] = (double)(float)*((float *)(void *)&float_buf); 
             }
             break;
             case sizeof(double): /* 8 byte */
@@ -727,14 +735,14 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                 memcpy(long_buf, 
                        &(byte_buf[ii*Cbytes+offset]),
                        sizeof(char)*sizeof(long));
-                real_vec_dat[ii] = (double)*(long *)(long_buf); 
+                real_vec_dat[ii] = (double)*((long *)(void *)&long_buf); 
               }
             } else {
             for(ii=0; ii<LEN; ii++) {
               memcpy(real_buf, 
                      &(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(double));
-              real_vec_dat[ii] = (double)*(double *)(real_buf); 
+              real_vec_dat[ii] = (double)*((double *)(void *)&real_buf); 
             }
             }
           }
@@ -748,7 +756,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             memcpy(complex_buf, 
                    &(byte_buf[ii*Cbytes+offset]),
                    sizeof(char)*sizeof(Rcomplex));
-            complex_vec_dat[ii] = *(Rcomplex *)(complex_buf); 
+            complex_vec_dat[ii] = *((Rcomplex *)(void *)&complex_buf); 
           }
           SET_VECTOR_ELT(dat, v, vec_dat);
           UNPROTECT(1);
@@ -1214,42 +1222,42 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
         for(i=0;  i < LEN; i++) {
           memcpy(short_buf, &(data[i * sizeof(short)]),sizeof(short));
           //if(cmp_to_int == (int)(short)*(short *)(short_buf)) 
-          if(cmp_to_int == (short)*(short *)(short_buf)) 
+          if(cmp_to_int == (short)*((short *)(void *)&short_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==2) {
         for(i=0;  i < LEN; i++) {
           memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int != (int)(short)*(short *)(short_buf)) 
+          if(cmp_to_int != (int)(short)*((short *)(void *)&short_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==3) {
         for(i=0;  i < LEN; i++) {
           memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int <= (int)(short)*(short *)(short_buf)) 
+          if(cmp_to_int <= (int)(short)*((short *)(void *)&short_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==4) {
         for(i=0;  i < LEN; i++) {
           memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int >= (int)(short)*(short *)(short_buf)) 
+          if(cmp_to_int >= (int)(short)*((short *)(void *)&short_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==5) {
         for(i=0;  i < LEN; i++) {
           memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int <  (int)(short)*(short *)(short_buf)) 
+          if(cmp_to_int <  (int)(short)*((short *)(void *)&short_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==6) {
         for(i=0;  i < LEN; i++) {
           memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int >  (int)(short)*(short *)(short_buf)) 
+          if(cmp_to_int >  (int)(short)*((short *)(void *)&short_buf)) 
             int_result[hits++] = i+1;
         }
       }
@@ -1257,42 +1265,42 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
       if(cmp_how==1) {
         for(i=0;  i < LEN; i++) {
           memcpy(short_buf, &(data[i * sizeof(short)]),sizeof(short));
-          if(cmp_to_int == (int)(unsigned short)*(unsigned short *)(short_buf)) 
+          if(cmp_to_int == (int)(unsigned short)*((unsigned short *)(void *)&short_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==2) {
         for(i=0;  i < LEN; i++) {
           memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int != (int)(unsigned short)*(unsigned short *)(short_buf)) 
+          if(cmp_to_int != (int)(unsigned short)*((unsigned short *)(void *)&short_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==3) {
         for(i=0;  i < LEN; i++) {
           memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int <= (int)(unsigned short)*(unsigned short *)(short_buf)) 
+          if(cmp_to_int <= (int)(unsigned short)*((unsigned short *)(void *)&short_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==4) {
         for(i=0;  i < LEN; i++) {
           memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int >= (int)(unsigned short)*(unsigned short *)(short_buf)) 
+          if(cmp_to_int >= (int)(unsigned short)*((unsigned short *)(void *)&short_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==5) {
         for(i=0;  i < LEN; i++) {
           memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int <  (int)(unsigned short)*(unsigned short *)(short_buf)) 
+          if(cmp_to_int <  (int)(unsigned short)*((unsigned short *)(void *)&short_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==6) {
         for(i=0;  i < LEN; i++) {
           memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int >  (int)(unsigned short)*(unsigned short *)(short_buf)) 
+          if(cmp_to_int >  (int)(unsigned short)*((unsigned short *)(void *)&short_buf)) 
             int_result[hits++] = i+1;
         }
       } /* end of ushort */
@@ -1305,11 +1313,11 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
           memcpy(int24_buf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if((int)*(int *)(int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+          if((int)*((int *)(void *)&int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
             memcpy(uint24_buf, 
                    &(data[i*3]), /* copy first 3 bytes */
                    3);
-            if(cmp_to_int == (int)*(int *)(uint24_buf)) 
+            if(cmp_to_int == (int)*((int *)(void *)&uint24_buf))
               int_result[hits++] = i+1;
           } else {
             if(cmp_to_int == (int)*(int *)(int24_buf)) 
@@ -1463,42 +1471,42 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
       if(cmp_how==1) {
         for(i=0;  i < LEN; i++) {
           memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-          if(cmp_to_int == (int)*(int *)(int_buf)) 
+          if(cmp_to_int == *((int *)(void *)&int_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==2) {
         for(i=0;  i < LEN; i++) {
           memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-          if(cmp_to_int != (int)*(int *)(int_buf)) 
+          if(cmp_to_int != *((int *)(void *)&int_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==3) {
         for(i=0;  i < LEN; i++) {
           memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-          if(cmp_to_int <= (int)*(int *)(int_buf)) 
+          if(cmp_to_int <= *((int *)(void *)&int_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==4) {
         for(i=0;  i < LEN; i++) {
           memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-          if(cmp_to_int >= (int)*(int *)(int_buf)) 
+          if(cmp_to_int >= *((int *)(void *)&int_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==5) {
         for(i=0;  i < LEN; i++) {
           memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-          if(cmp_to_int <  (int)*(int *)(int_buf)) 
+          if(cmp_to_int <  *((int *)(void *)&int_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==6) {
         for(i=0;  i < LEN; i++) {
           memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-          if(cmp_to_int >  (int)*(int *)(int_buf)) 
+          if(cmp_to_int >  *((int *)(void *)&int_buf)) 
             int_result[hits++] = i+1;
         }
       }
@@ -1518,42 +1526,42 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
       if(cmp_how==1) {
         for(i=0;  i < LEN; i++) {
           memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
-          if(cmp_to_real == (double)(float)*(float *)(float_buf)) 
+          if(cmp_to_real == (double)(float)*((float *)(void *)&float_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==2) {
         for(i=0;  i < LEN; i++) {
           memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
-          if(cmp_to_real != (double)(float)*(float *)(float_buf)) 
+          if(cmp_to_real != (double)(float)*((float *)(void *)&float_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==3) {
         for(i=0;  i < LEN; i++) {
           memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
-          if(cmp_to_real <= (double)(float)*(float *)(float_buf)) 
+          if(cmp_to_real <= (double)(float)*((float *)(void *)&float_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==4) {
         for(i=0;  i < LEN; i++) {
           memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
-          if(cmp_to_real >= (double)(float)*(float *)(float_buf)) 
+          if(cmp_to_real >= (double)(float)*((float *)(void *)&float_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==5) {
         for(i=0;  i < LEN; i++) {
           memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
-          if(cmp_to_real <  (double)(float)*(float *)(float_buf)) 
+          if(cmp_to_real <  (double)(float)*((float *)(void *)&float_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==6) {
         for(i=0;  i < LEN; i++) {
           memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
-          if(cmp_to_real >  (double)(float)*(float *)(float_buf)) 
+          if(cmp_to_real >  (double)(float)*((float *)(void *)&float_buf)) 
             int_result[hits++] = i+1;
         }
       }
@@ -1562,42 +1570,42 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
       if(cmp_how==1) {
         for(i=0;  i < LEN; i++) {
           memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
-          if(cmp_to_real == (double)*(double *)(real_buf)) 
+          if(cmp_to_real == *((double *)(void *)&real_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==2) {
         for(i=0;  i < LEN; i++) {
           memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
-          if(cmp_to_real != (double)*(double *)(real_buf)) 
+          if(cmp_to_real != *((double *)(void *)&real_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==3) {
         for(i=0;  i < LEN; i++) {
           memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
-          if(cmp_to_real <= (double)*(double *)(real_buf)) 
+          if(cmp_to_real <= *((double *)(void *)&real_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==4) {
         for(i=0;  i < LEN; i++) {
           memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
-          if(cmp_to_real >= (double)*(double *)(real_buf)) 
+          if(cmp_to_real >= *((double *)(void *)&real_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==5) {
         for(i=0;  i < LEN; i++) {
           memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
-          if(cmp_to_real <  (double)*(double *)(real_buf)) 
+          if(cmp_to_real <  *((double *)(void *)&real_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==6) {
         for(i=0;  i < LEN; i++) {
           memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
-          if(cmp_to_real >  (double)*(double *)(real_buf)) 
+          if(cmp_to_real >  *((double *)(void *)&real_buf)) 
             int_result[hits++] = i+1;
         }
       }
