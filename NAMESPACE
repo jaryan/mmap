@@ -17,6 +17,7 @@ export(
        extractFUN, "extractFUN<-",
        replaceFUN, "replaceFUN<-",
 
+       bits,  # not yet implemented
        char,  int8,  int16,  int24,  int32,  
        uchar, uint8, uint16, uint24, int64,
        real32, real64,

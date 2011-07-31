@@ -61,6 +61,7 @@ print.mmap <- function(x, ...) {
   type_name <- switch(typeof(x$storage.mode),
                       "list"="struct",
                       "integer"="int",
+                      "logical"="logi",
                       "double"="num",
                       "complex"="cplx",
                       "character"="chr",
@@ -232,6 +233,9 @@ is.mmap <- function(x) {
 length.mmap <- function(x) {
   size_in_bytes <- x$bytes
   size <- attr(x$storage.mode,"bytes")
+  if( class(x$storage.mode)[2] == 'bits')
+    as.integer(size_in_bytes/size) * 32L
+  else
   as.integer(size_in_bytes/size)
 }
 

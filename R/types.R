@@ -149,6 +149,10 @@ cplx <- C_complex <- function(length=0) {
   structure(complex(length),  bytes=16L, signed=1L, class=c("Ctype","complex"))
 }
 
+bits <- C_bits <- function(length=0) {
+  structure(logical(length), bytes=4L, signed=0L, class=c("Ctype", "bits"))
+}
+
 .struct <- function (..., bytes, offset) {
     dots <- lapply(list(...), as.Ctype)
     if( missing(bytes))

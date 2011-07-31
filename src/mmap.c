@@ -20,12 +20,22 @@
 #undef HAVE_MADVISE
 #endif
 
-typedef struct {
-  char * data;
-  long  size;
-  int  fd;
-} MM;
+int bitmask[32];
+int nbitmask[32];
 
+void create_bitmask (void){
+  int i;
+  /* little-endian for now */
+  for(i=0; i<32; i++) {
+     bitmask[i] = 1 << i;
+    nbitmask[i] = ~bitmask[i];
+  }
+}
+
+SEXP make_bitmask () {
+  create_bitmask();
+  return R_NilValue;
+}
 /*
 The "mmap" package for R is designed to provide a
 low level interface to the POSIX mmap C function
@@ -386,6 +396,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
   unsigned char *byte_buf;
   SEXP byteBuf;
   int *int_dat;
+  int *lgl_dat;
   double *real_dat;
   Rcomplex *complex_dat;
   unsigned char *raw_dat;
@@ -418,6 +429,27 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
   Rbyte *raw_vec_dat;
 
   switch(mode) {
+  case LGLSXP:
+    lgl_dat = LOGICAL(dat);
+    for(i=0;  i < LEN; i++) {
+      //ival =  (index_p[i]-1);
+      //if( ival > upper_bound || ival < 0 ) {
+      //  if( ival == 0 ) {
+      //    continue;
+      //  }
+      //  error("'i=%i' out of bounds", index_p[i]);
+      //}
+      int which_word = (int) ((index_p[i]-1)/32);
+      memcpy(int_buf, 
+             &(data[which_word]),
+             sizeof(char)*sizeof(int));
+      lgl_dat[i] = (int)*((int *)(void *)&int_buf); 
+      if(lgl_dat[i] & bitmask[ (index_p[i]-1 )-(which_word*32) ])
+        lgl_dat[i] = 1;
+      else
+        lgl_dat[i] = 0;
+    }
+    break;
   case INTSXP: /* {{{ */
     int_dat = INTEGER(dat);
     upper_bound = (MMAP_SIZE(mmap_obj)-Cbytes)/Cbytes;
@@ -520,30 +552,22 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
         }
         break;
       case 4: /* 4 byte int */
-        /* 
-          bitvec support for 1-bit logical vectors
-          At some level it seems like this is desirable, but it
-          may be just as easy and more maintainable if we simply
-          extract the entire integer vector and coerce to logical
-          within R if and when appropriate.
-
-          This would allow for identical 32:1 gains
-          in compression, but would also let external packages manipulate
-          the bit structures.
-        */
-        for(i=0;  i < LEN; i++) {
-          ival =  (index_p[i]-1);
-          if( ival > upper_bound || ival < 0 ) {
-            if( ival == 0 ) {
-              continue;
+        if( strcmp(MMAP_CTYPE(mmap_obj), "bit") == 0) {
+          //error("bit logicals currently unsupported");
+        } else {
+          for(i=0;  i < LEN; i++) {
+            ival =  (index_p[i]-1);
+            if( ival > upper_bound || ival < 0 ) {
+              if( ival == 0 ) {
+                continue;
+              }
+              error("'i=%i' out of bounds", index_p[i]);
             }
-            error("'i=%i' out of bounds", index_p[i]);
+            memcpy(int_buf, 
+                   &(data[(index_p[i]-1)*sizeof(int)]),
+                   sizeof(char)*sizeof(int));
+            int_dat[i] = (int)*((int *)(void *)&int_buf); 
           }
-          memcpy(int_buf, 
-                 &(data[(index_p[i]-1)*sizeof(int)]),
-                 sizeof(char)*sizeof(int));
-          /*int_dat[i] = (int)*(int *)(int_buf); */
-          int_dat[i] = (int)*((int *)(void *)&int_buf); 
         }
         break;
       default:

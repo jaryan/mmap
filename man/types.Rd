@@ -2,6 +2,7 @@
 \alias{types}
 \alias{as.Ctype}
 \alias{is.Ctype}
+\alias{bits}
 \alias{char}
 \alias{uchar}
 \alias{cplx}
@@ -36,6 +37,7 @@ These functions describe the types of raw binary
 data stored on disk. 
 }
 \usage{
+%bits(length = 0)
 char(length = 0)
 uchar(length = 0)
 int8(length = 0)
