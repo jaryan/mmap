@@ -20,22 +20,6 @@
 #undef HAVE_MADVISE
 #endif
 
-int bitmask[32];
-int nbitmask[32];
-
-void create_bitmask (void){
-  int i;
-  /* little-endian for now */
-  for(i=0; i<32; i++) {
-     bitmask[i] = 1 << i;
-    nbitmask[i] = ~bitmask[i];
-  }
-}
-
-SEXP make_bitmask () {
-  create_bitmask();
-  return R_NilValue;
-}
 /*
 The "mmap" package for R is designed to provide a
 low level interface to the POSIX mmap C function
@@ -72,6 +56,25 @@ as the addition of a smart finalizer.
 Comments, criticisms, and concerns should be directed
 to the maintainer of the package.
 */
+
+/* initialize bitmask for bits() type {{{*/
+int bitmask[32];
+int nbitmask[32];
+
+void create_bitmask (void){
+  int i;
+  /* little-endian for now */
+  for(i=0; i<32; i++) {
+     bitmask[i] = 1 << i;
+    nbitmask[i] = ~bitmask[i];
+  }
+}
+
+SEXP make_bitmask () {
+  create_bitmask();
+  return R_NilValue;
+} /*}}}*/
+
 /* mmap_mkFlags {{{ */
 SEXP mmap_mkFlags (SEXP _flags) {
   char *cur_string;
@@ -430,24 +433,40 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
 
   switch(mode) {
   case LGLSXP:
-    lgl_dat = LOGICAL(dat);
-    for(i=0;  i < LEN; i++) {
-      //ival =  (index_p[i]-1);
-      //if( ival > upper_bound || ival < 0 ) {
-      //  if( ival == 0 ) {
-      //    continue;
-      //  }
-      //  error("'i=%i' out of bounds", index_p[i]);
-      //}
-      int which_word = (int) ((index_p[i]-1)/32);
-      memcpy(int_buf, 
-             &(data[which_word]),
-             sizeof(char)*sizeof(int));
-      lgl_dat[i] = (int)*((int *)(void *)&int_buf); 
-      if(lgl_dat[i] & bitmask[ (index_p[i]-1 )-(which_word*32) ])
-        lgl_dat[i] = 1;
-      else
-        lgl_dat[i] = 0;
+    /* FIXME Need bound checking */
+    if( strcmp(MMAP_CTYPE(mmap_obj), "bits") == 0) { /* bits */
+      lgl_dat = LOGICAL(dat);
+      for(i=0;  i < LEN; i++) {
+        int which_word = (int) ((index_p[i]-1)/32);
+        memcpy(int_buf, 
+               &(data[which_word]),
+               sizeof(char)*sizeof(int));
+        lgl_dat[i] = (int)*((int *)(void *)&int_buf); 
+        if(lgl_dat[i] & bitmask[ (index_p[i]-1 )-(which_word*32) ])
+          lgl_dat[i] = 1;
+        else
+          lgl_dat[i] = 0;
+      }
+    } else {
+      lgl_dat = LOGICAL(dat);
+      switch(Cbytes) {
+        case sizeof(char): /* logi8 */
+          for(i=0;  i < LEN; i++) {
+            lgl_dat[i] = (int)(unsigned char)(data[(index_p[i]-1)]);
+          }
+          break;
+        case sizeof(int): /* logi32 */
+          for(i=0;  i < LEN; i++) {
+            memcpy(int_buf, 
+                   &(data[(index_p[i]-1)*sizeof(int)]),
+                   sizeof(char)*sizeof(int));
+            lgl_dat[i] = (int)*((int *)(void *)&int_buf); 
+          }
+          break;
+        default:
+          error("'logi' types must be either 8 or 32 bit");
+          break;
+      }
     }
     break;
   case INTSXP: /* {{{ */
@@ -834,14 +853,15 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
   if((data = MMAP_DATA(mmap_obj)) == NULL)
     error("invalid mmap pointer");
 
-  int    *int_value;
-  double *real_value;
+  int           *int_value,
+                *lgl_value;
+  double        *real_value;
   unsigned char *byte_value;
-  float  float_value;
-  short  short_value;
-  long   long_value;
-  char   char_value;
-  SEXP string_value;
+  float         float_value;
+  short         short_value;
+  long          long_value;
+  char          char_value;
+  SEXP          string_value;
 
   if(mode != VECSXP) {
     PROTECT(value = coerceVector(value, mode)); P++;
@@ -849,23 +869,53 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
   PROTECT(index = coerceVector(index, INTSXP) ); P++;
   PROTECT(field = coerceVector(field, INTSXP) ); P++;
   int *index_p = INTEGER(index);
+  int which_word, new_word, int_buf;
   switch(mode) {
+  case LGLSXP:
+    lgl_value = LOGICAL(value);
+    upper_bound = (MMAP_SIZE(mmap_obj)-Cbytes); 
+    if( strcmp(MMAP_CTYPE(mmap_obj), "bits") == 0) {  /* bits() */
+      for(i=0; i < LEN; i++) {
+        which_word = (int) ((index_p[i]-1)/32);
+        memcpy(&int_buf, &(data[which_word]), sizeof(int));
+        if(lgl_value[i])
+          new_word = int_buf | bitmask[ (index_p[i]-1)-(which_word*32) ];
+        else
+          new_word = int_buf & nbitmask[ (index_p[i]-1)-(which_word*32) ];
+        memcpy(&(data[which_word]), &(new_word), sizeof(int));
+Rprintf("i: %i\twhich_word: %i\tnew_word%i\n", i, which_word, new_word);
+      }
+    } else {
+    switch(Cbytes) {
+      case sizeof(char): /* logi8 */
+        for(i=0; i < LEN; i++) {
+          ival = (index_p[i]-1)*sizeof(char);
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          char_value = (unsigned char)(lgl_value[i]);
+          memcpy(&(data[(index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
+        }
+        break;
+      case sizeof(int): /* logi32 */
+        for(i=0; i < LEN; i++) {
+          ival = (index_p[i]-1)*sizeof(int);
+          if( ival > upper_bound || ival < 0 )
+            error("'i=%i' out of bounds", index_p[i]);
+          /* endianess issues are here -- FIXME */
+          memcpy(&(data[(index_p[i]-1)*sizeof(int)]), &(lgl_value[i]), sizeof(int));
+        }
+        break;
+      default:
+        error("'logi' types must either 8 or 32 bit");
+        break;
+    } 
+    }
+    break;
   case INTSXP: /* {{{ */
     int_value = INTEGER(value);
     upper_bound = (MMAP_SIZE(mmap_obj)-Cbytes); 
     switch(Cbytes) {
       case sizeof(char): /* 1 byte char */
-      /*
-      if(isSigned) {
-        for(i=0;  i < LEN; i++) {
-          ival = (index_p[i]-1)*sizeof(char);
-          if( ival > upper_bound || ival < 0 )
-            error("'i=%i' out of bounds", index_p[i]);
-          char_value = (char)(int_value[i]); 
-          memcpy(&(data[(index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
-        }
-      } else {
-      */
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(char);
           if( ival > upper_bound || ival < 0 )
@@ -873,20 +923,8 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
           char_value = (unsigned char)(int_value[i]); 
           memcpy(&(data[(index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
         }
-      /*}*/
       break;
       case sizeof(short): /* 2 byte short */
-      /*
-      if(isSigned) {
-        for(i=0;  i < LEN; i++) {
-          ival = (index_p[i]-1)*sizeof(short);
-          if( ival > upper_bound || ival < 0 )
-            error("'i=%i' out of bounds", index_p[i]);
-          short_value = (short)(int_value[i]); 
-          memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(short_value), sizeof(short));
-        }
-      } else {
-      */
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1)*sizeof(short);
           if( ival > upper_bound || ival < 0 )
@@ -894,26 +932,14 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
           short_value = (unsigned short)(int_value[i]); 
           memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(short_value), sizeof(short));
         }
-      /*}*/
       break;
       case 3: /* case 3 byte */
-      /*
-      if(isSigned) {
-        for(i=0;  i < LEN; i++) {
-          ival = (index_p[i]-1)*3;
-          if( ival > upper_bound || ival < 0 )
-            error("'i=%i' out of bounds", index_p[i]);
-          memcpy(&(data[(index_p[i]-1)*3]), &(int_value[i]), 3);
-        }
-      } else {
-      */
       for(i=0;  i < LEN; i++) {
         ival = (index_p[i]-1)*3;
         if( ival > upper_bound || ival < 0 )
           error("'i=%i' out of bounds", index_p[i]);
         memcpy(&(data[(index_p[i]-1)*3]), &(int_value[i]), 3);
       }
-      /*}*/
       break;
       case sizeof(int): /* 4 byte int */
         for(i=0;  i < LEN; i++) {
@@ -1678,6 +1704,8 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
 }/*}}}*/
 
 SEXP convert_ij_to_i (SEXP rows, SEXP i, SEXP j) {
+  /* utility to take i,j subsets for matrix objects and
+     convert to subset column-major array in memory */
   int n=0, jj, ii, lenj=length(j), leni=length(i);
   int _rows = INTEGER(rows)[0];
   SEXP newi;

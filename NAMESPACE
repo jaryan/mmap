@@ -18,6 +18,7 @@ export(
        replaceFUN, "replaceFUN<-",
 
        bits,  # not yet implemented
+       logi8, logi32,
        char,  int8,  int16,  int24,  int32,  
        uchar, uint8, uint16, uint24, int64,
        real32, real64,
@@ -74,6 +75,7 @@ S3method(as.mmap, data.frame)
 S3method("[[<-", struct)
 S3method(as.struct, default)
 S3method(as.Ctype, Ctype)
+S3method(as.Ctype, logical)
 S3method(as.Ctype, character)
 S3method(as.Ctype, complex)
 S3method(as.Ctype, double)

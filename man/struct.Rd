@@ -223,7 +223,7 @@ system.time(for(i in 1:100) {m1[i];m2[i];m3[i]}) # no cost to list()
 # you can skip struct members by specifying offset and bytes
 
 m <- mmap(tmp, struct(int8(),
-                     #real32(),   here we are skipping the int 
+                     #real32(),   here we are skipping the 4 byte float
                       real64(),
                       offset=c(0,5), bytes=13))
 

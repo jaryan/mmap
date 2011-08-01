@@ -45,6 +45,11 @@ as.Ctype.complex <- function(x) {
     cplx()
   else cplx(length(x))
 }
+as.Ctype.logical <- function(x) {
+  if(length(x) == 1 && x==0)
+    logi32()
+  else logi32(length(x))
+}
 
 char <- C_char <- function(length=0) {
   if(length==0) { # a char byte
@@ -151,6 +156,14 @@ cplx <- C_complex <- function(length=0) {
 
 bits <- C_bits <- function(length=0) {
   structure(logical(length), bytes=4L, signed=0L, class=c("Ctype", "bits"))
+}
+
+logi32 <- C_logi <- function(length=0) {
+  structure(logical(length), bytes=4L, signed=0L, class=c("Ctype", "logi32"))
+}
+
+logi8 <- C_logi <- function(length=0) {
+  structure(logical(length), bytes=1L, signed=0L, class=c("Ctype", "logi8"))
 }
 
 .struct <- function (..., bytes, offset) {

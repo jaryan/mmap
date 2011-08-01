@@ -3,6 +3,8 @@
 \alias{as.Ctype}
 \alias{is.Ctype}
 \alias{bits}
+\alias{logi8}
+\alias{logi32}
 \alias{char}
 \alias{uchar}
 \alias{cplx}
