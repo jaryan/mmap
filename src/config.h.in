@@ -1,5 +1,20 @@
 /* src/config.h.in.  Generated from configure.in by autoheader.  */
 
+/* The normal alignment of `char', in bytes. */
+#undef ALIGNOF_CHAR
+
+/* The normal alignment of `double', in bytes. */
+#undef ALIGNOF_DOUBLE
+
+/* The normal alignment of `int', in bytes. */
+#undef ALIGNOF_INT
+
+/* The normal alignment of `long', in bytes. */
+#undef ALIGNOF_LONG
+
+/* The normal alignment of `short', in bytes. */
+#undef ALIGNOF_SHORT
+
 /* Define to 1 if you have the `getpagesize' function. */
 #undef HAVE_GETPAGESIZE
 

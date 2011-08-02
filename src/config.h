@@ -1,6 +1,21 @@
 /* src/config.h.  Generated from config.h.in by configure.  */
 /* src/config.h.in.  Generated from configure.in by autoheader.  */
 
+/* The normal alignment of `char', in bytes. */
+#define ALIGNOF_CHAR 1
+
+/* The normal alignment of `double', in bytes. */
+#define ALIGNOF_DOUBLE 8
+
+/* The normal alignment of `int', in bytes. */
+#define ALIGNOF_INT 4
+
+/* The normal alignment of `long', in bytes. */
+#define ALIGNOF_LONG 8
+
+/* The normal alignment of `short', in bytes. */
+#define ALIGNOF_SHORT 2
+
 /* Define to 1 if you have the `getpagesize' function. */
 #define HAVE_GETPAGESIZE 1
 
@@ -47,7 +62,7 @@
 #define PACKAGE_NAME "mmap"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "mmap 0.5-5"
+#define PACKAGE_STRING "mmap 0.6-7"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "mmap"
@@ -56,7 +71,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.5-5"
+#define PACKAGE_VERSION "0.6-7"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
