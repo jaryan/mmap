@@ -15,7 +15,7 @@
 
 \title{\bf mmap: Memory Mapped Files in R}
 \author{Jeffrey A. Ryan}
-\date{October 25, 2010}
+\date{August 1, 2011}
 
 \begin{document}
 
@@ -156,7 +156,7 @@ By default, elements are only taken from disk when
 extracted via a \texttt{`['} call. This allows for controlled
 behavior when dealing with objects that are likely to be
 many times the available memory.  Subsetting is \emph{always} required
-to access the contents of an mapped file. This
+to access the contents of a mapped file. This
 is similar to the requirement in C of dereferencing the pointer
 to the data, and is in fact what is happening behind the scenes.
 To unmap the object and free the system resources, the code must call \texttt{munmap}.
@@ -180,15 +180,19 @@ style, namely that provided by the \emph{what}
 argument of \texttt{scan} and \texttt{readBin}: \texttt{integer()} for integers, 
 \texttt{double()} for double/numeric, etc.
 
-The \texttt{mmap} package currently supports thirteen fixed-width (byte count) types,
-including 8, 16, and 24-bit signed and unsigned integers, 32-bit signed integers,
+The \texttt{mmap} package currently supports sixteen fixed-width (byte count) types,
+including 1, 8, and 32 bit logicals; 8, 16, and 24-bit signed and unsigned integers; 32 and 64 
+bit signed integers,
 floating point numbers with 32 and 64-bits, complex numbers (128-bit), fixed-width
 character strings (nul terminated, as \texttt{writeBin} produces), and single byte char
 types.  Additionally, types may be combined into more complex structures
 via the \texttt{struct} type in mmap.  This is analogous to a row-based 
 representation where different types
 are adjacent on disk.
-This can be thought of as a \texttt{data.frame} or \texttt{list} in R.
+This can be thought of as a \texttt{data.frame} or \texttt{list} in R. Note that struct
+mappings are unaware of alignment issues, and will require additional parameters to
+specify the offset (accounting for padding, if any) and true length of the struct (inclusive
+of padding, if any).
 
 The C-styled types are offered for compatability
 with external programs, as well as to minimizing disk
@@ -269,6 +273,11 @@ type support in \texttt{mmap}.
     \texttt{raw()}    & raw     & unsigned char             & 1 \\
     \texttt{char()}   & raw     & char                      & 1\\
     \texttt{uchar()}  & raw     & unsigned char             & 1\\
+    \midrule
+    \texttt{bits()}   & logical & bit (32 bit increments)   & 1 \\
+    \texttt{logi8()}  & logical & char                      & 1\\
+    \texttt{logi32()} & logical & int                       & 4\\
+    \texttt{logical()}& logical & int                       & 4\\
     \midrule
 %    int8   & integer & -128 to 127               & 1 \\
 %    uint8  & integer & 0 to 255                  & 1 \\
