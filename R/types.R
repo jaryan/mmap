@@ -166,6 +166,10 @@ logi8 <- C_logi <- function(length=0) {
   structure(logical(length), bytes=1L, signed=0L, class=c("Ctype", "logi8"))
 }
 
+pad <- C_pad <- function(length=0) {
+  structure(NA_integer_, bytes=length, class=c("Ctype", "pad"))
+}
+
 .struct <- function (..., bytes, offset) {
     dots <- lapply(list(...), as.Ctype)
     if( missing(bytes))
@@ -185,6 +189,11 @@ struct <- function (..., bytes, offset) {
       offset <- cumsum(bytes_) - bytes_
     if (!missing(bytes)) 
       bytes_ <- bytes
+    padding <- which(sapply(dots, function(C) class(C)[2])=="pad")
+    if( length(padding) > 0) {
+      dots <- dots[-padding]
+      offset <- offset[-padding]
+    }
     structure(dots, bytes = as.integer(sum(bytes_)), 
                     offset = as.integer(offset), 
                     signed = NA, 

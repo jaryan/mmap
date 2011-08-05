@@ -24,6 +24,7 @@ export(
        real32, real64,
        cplx,
        as.uchar, as.char, as.int8, as.uint8, as.int16, as.uint16, as.int24,
+       pad,
 
        struct,
        as.struct,

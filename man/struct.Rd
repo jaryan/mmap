@@ -221,15 +221,17 @@ system.time(for(i in 1:100) list(m1[i],m2[i],m3[i]))
 system.time(for(i in 1:100) {m1[i];m2[i];m3[i]}) # no cost to list()
 
 # you can skip struct members by specifying offset and bytes
-
 m <- mmap(tmp, struct(int8(),
                      #real32(),   here we are skipping the 4 byte float
                       real64(),
                       offset=c(0,5), bytes=13))
-
+# alternatively you can add padding directly
+n <- mmap(tmp, struct(int8(), pad(4), real64()))
 m[1]
+n[1]
 
 munmap(m)
+munmap(n)
 munmap(m1)
 munmap(m2)
 munmap(m3)
