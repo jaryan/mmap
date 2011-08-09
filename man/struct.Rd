@@ -1,5 +1,6 @@
 \name{struct}
 \alias{struct}
+\alias{pad}
 \alias{as.struct}
 \alias{is.struct}
 \alias{as.list.Ctype}
@@ -28,7 +29,7 @@ The total number of bytes in the struct. See details.
 The byte offset of members of the struct. See details.
 }
   \item{x}{
-object to test
+object to test 
 }
 }
 \details{
@@ -227,6 +228,10 @@ m <- mmap(tmp, struct(int8(),
                       offset=c(0,5), bytes=13))
 # alternatively you can add padding directly
 n <- mmap(tmp, struct(int8(), pad(4), real64()))
+
+pad(4)
+pad(int32())
+
 m[1]
 n[1]
 
