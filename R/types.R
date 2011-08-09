@@ -36,9 +36,7 @@ as.Ctype.raw <- function(x) {
   else uchar(length(x))
 }
 as.Ctype.character <- function(x) {
-  if(length(x) == 1 && x==0)
-    char()
-  else char(length(x))
+  char(nchar(x))
 }
 as.Ctype.complex <- function(x) {
   if(length(x) == 1 && x==0)
@@ -166,8 +164,16 @@ logi8 <- C_logi <- function(length=0) {
   structure(logical(length), bytes=1L, signed=0L, class=c("Ctype", "logi8"))
 }
 
-pad <- C_pad <- function(length=0) {
+pad <- C_pad <- function(...) {
+  UseMethod("pad")
+}
+
+pad.default <- function(length=0, ...) {
   structure(NA_integer_, bytes=length, class=c("Ctype", "pad"))
+}
+
+pad.Ctype <- function(ctype, ...) {
+  pad(attr(ctype, "bytes"))
 }
 
 .struct <- function (..., bytes, offset) {

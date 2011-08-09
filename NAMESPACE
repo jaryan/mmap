@@ -97,5 +97,8 @@ S3method(sizeof, default)
 S3method(sizeof, Ctype)
 S3method(sizeof, "function")
 
+S3method(pad, default)
+S3method(pad, Ctype)
+
 S3method(print, Ctype)
 S3method(as.list, Ctype)
