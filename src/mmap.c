@@ -609,9 +609,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           memcpy(&floatbuf, 
                  &(data[(index_p[i]-1)*sizeof(float)]), 
                  sizeof(char)*sizeof(float));
-          /*real_dat[i] = (double)(float)*(float *)(float_buf); */
           real_dat[i] = (double)floatbuf;
-          //real_dat[i] = (double)(float)*((float *)(void *)&float_buf); 
         }
         break;
       case 8: /* 8 byte double or (double)int64 */
@@ -624,7 +622,6 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             memcpy(&longbuf, 
                    &(data[(index_p[i]-1)*sizeof(long)]), 
                    sizeof(char)*sizeof(long));
-            /*real_dat[i] = (double)*(long *)(long_buf); */
             real_dat[i] = (double)longbuf;
           }
         } else {
@@ -635,7 +632,6 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           memcpy(&realbuf, 
                  &(data[(index_p[i]-1)*sizeof(double)]), 
                  sizeof(char)*sizeof(double));
-          /*real_dat[i] = (double)*(double *)(real_buf); */
           real_dat[i] = realbuf;
         }
         }
@@ -654,8 +650,6 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
       memcpy(&Rcomplexbuf, 
              &(data[(index_p[i]-1)*sizeof(Rcomplex)]), 
              sizeof(char)*sizeof(Rcomplex));
-      //complex_dat[i] = (Rcomplex)*(Rcomplex *)(complex_buf); 
-      /*complex_dat[i] = *(Rcomplex *)(complex_buf); */
       complex_dat[i] = Rcomplexbuf;
     }
     break; /* }}} */
