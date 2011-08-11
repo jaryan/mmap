@@ -380,21 +380,18 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
 
   /* 24 bit integers require a mask of the depending
      on whether the type is signed or unsigned */
+  /*
   char *int24_buf[4],
        *uint24_buf[4];
   memset(int24_buf, 0, 4);
-  memset(uint24_buf, 0xFF, 4); /* used to convert overflow to negative */
+  memset(uint24_buf, 0xFF, 4); // used to convert overflow to negative
+  */
 
   PROTECT(index = coerceVector(index,INTSXP)); P++;
   int LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
   int Cbytes = MMAP_CBYTES(mmap_obj);
   int isSigned = MMAP_SIGNED(mmap_obj);
-
-  char *int_buf[sizeof(int)], *real_buf[sizeof(double)];
-  char *complex_buf[sizeof(Rcomplex)];
-  char *float_buf[sizeof(float)];
-  char *long_buf[sizeof(long)];
 
   /* types to hold memcpy of raw bytes to avoid punning */
   short sbuf;
@@ -418,7 +415,6 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
 
   SEXP dat; /* dat is either a column, or list of columns */
   if(mode==VECSXP) {
-    //PROTECT(dat = allocVector(VECSXP, length(MMAP_SMODE(mmap_obj))));
     PROTECT(dat = allocVector(VECSXP, length(field)));
   } else PROTECT(dat = allocVector(mode,LEN));
   P++;
@@ -440,7 +436,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
   Rbyte *raw_vec_dat;
 
   switch(mode) {
-  case LGLSXP:
+  case LGLSXP: /* {{{ */
     /* FIXME Need bound checking */
     if( strcmp(MMAP_CTYPE(mmap_obj), "bits") == 0) { /* bits */
       lgl_dat = LOGICAL(dat);
@@ -476,7 +472,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           break;
       }
     }
-    break;
+    break; /* }}} */
   case INTSXP: /* {{{ */
     int_dat = INTEGER(dat);
     upper_bound = (MMAP_SIZE(mmap_obj)-Cbytes)/Cbytes;
@@ -658,8 +654,11 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
     /* fixed width character support */
     for(i=0; i < LEN; i++) {
       SET_STRING_ELT(dat, i,
+/*
+        mkChar( (const char *)&(data[(index_p[i]-1)*Cbytes]) ));
+*/
         mkCharLenCE((const char *)&(data[(index_p[i]-1)*Cbytes]),
-                    Cbytes-1, CE_NATIVE));
+                    Cbytes > 1 ? Cbytes - 1 : Cbytes, CE_NATIVE));
     }
     break; /* }}} */
   case RAWSXP: /* {{{ */
@@ -693,6 +692,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
          for the duration of the call. It would be better if we
          could release/resize this as we go, but for now this is
          simple and effective.
+
+         Is this even needed?  Seems like our loops below handle the copies... JR
       */
       memcpy(&(byte_buf[i*Cbytes]),
              &(data[(index_p[i]-1) * Cbytes]),
@@ -724,17 +725,17 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             case sizeof(short):
             if(fieldSigned) {   /* 2 byte */
             for(ii=0; ii<LEN; ii++) {
-              memcpy(int_buf, 
+              memcpy(&sbuf, 
                      &(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(short));
-              int_vec_dat[ii] = (int)*((short *)(void *)&int_buf); 
+              int_vec_dat[ii] = (int)sbuf;
             }
             } else {            /* 2 byte unsigned short */
             for(ii=0; ii<LEN; ii++) {
-              memcpy(int_buf, 
+              memcpy(&sbuf, 
                      &(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(short));
-              int_vec_dat[ii] = (int)*((unsigned short *)(void *)&int_buf); 
+              int_vec_dat[ii] = (int)(unsigned short)sbuf;
             }
             }
             break;
@@ -743,15 +744,14 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             */
             case sizeof(int): /* 4 byte */
             for(ii=0; ii<LEN; ii++) {
-              memcpy(int_buf, 
+              memcpy(&intbuf, 
                      &(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(int));
-              int_vec_dat[ii] = (int)*((int *)(void *)&int_buf); 
+              int_vec_dat[ii] = intbuf;
             }
             break;
           }
           SET_VECTOR_ELT(dat, fi, vec_dat);
-          //SET_VECTOR_ELT(dat, v, vec_dat);
           UNPROTECT(1);
           break;
         case REALSXP:
@@ -760,10 +760,10 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           switch(fieldCbytes) {
             case sizeof(float): /* 4 byte */
             for(ii=0; ii<LEN; ii++) {
-              memcpy(float_buf, 
+              memcpy(&floatbuf, 
                      &(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(float));
-              real_vec_dat[ii] = (double)(float)*((float *)(void *)&float_buf); 
+              real_vec_dat[ii] = (double)floatbuf;
             }
             break;
             case sizeof(double): /* 8 byte */
@@ -771,17 +771,17 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                                                  R_ClassSymbol),1)),"int64") == 0) { 
               /* casting from int64 to R double to minimize precision loss */
               for(ii=0;  ii < LEN; ii++) {
-                memcpy(long_buf, 
+                memcpy(&longbuf, 
                        &(byte_buf[ii*Cbytes+offset]),
                        sizeof(char)*sizeof(long));
-                real_vec_dat[ii] = (double)*((long *)(void *)&long_buf); 
+                real_vec_dat[ii] = (double)longbuf;
               }
             } else {
             for(ii=0; ii<LEN; ii++) {
-              memcpy(real_buf, 
+              memcpy(&realbuf, 
                      &(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(double));
-              real_vec_dat[ii] = (double)*((double *)(void *)&real_buf); 
+              real_vec_dat[ii] = (double)realbuf;
             }
             }
           }
@@ -792,10 +792,10 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           PROTECT(vec_dat = allocVector(CPLXSXP, LEN));
           complex_vec_dat = COMPLEX(vec_dat);
           for(ii=0; ii<LEN; ii++) {
-            memcpy(complex_buf, 
+            memcpy(&Rcomplexbuf, 
                    &(byte_buf[ii*Cbytes+offset]),
                    sizeof(char)*sizeof(Rcomplex));
-            complex_vec_dat[ii] = *((Rcomplex *)(void *)&complex_buf); 
+            complex_vec_dat[ii] = Rcomplexbuf;
           }
           SET_VECTOR_ELT(dat, v, vec_dat);
           UNPROTECT(1);
