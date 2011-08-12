@@ -54,7 +54,7 @@ char <- C_char <- function(length=0, nul=TRUE) {
     structure(raw(length), bytes=1L, signed=1L, class=c("Ctype","char"))
   } else {
     structure(character(length+ifelse(nul,1,0)), bytes=as.integer(length+ifelse(nul,1,0)), signed=0L,
-              class=c("Ctype","char"))
+              nul=nul, class=c("Ctype","char"))
   }
 }
 

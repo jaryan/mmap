@@ -19,7 +19,10 @@ Ops.mmap <- function(e1,e2) {
 dim.mmap <- function(x) {
   if( is.struct(x$storage.mode))
     return( c(length(x), length(x$storage.mode)) )
-  x$dim
+  if(is.null(x$dim))
+    c(length(x),1)
+  else
+    x$dim
 }
 
 `dim<-.mmap` <- function(x, value) {

@@ -40,7 +40,7 @@ data stored on disk.
 }
 \usage{
 %bits(length = 0)
-char(length = 0)
+char(length = 0, nul = TRUE)
 uchar(length = 0)
 int8(length = 0)
 uint8(length = 0)
@@ -64,6 +64,9 @@ desired length.
 }
   \item{x}{
 R object to coerce or test
+}
+  \item{nul}{
+are characters delimited by a nul byte?
 }
 }
 \details{

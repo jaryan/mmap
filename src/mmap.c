@@ -427,6 +427,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
      that are not used --- move alloc to do that */
   int fieldCbytes;
   int fieldSigned;
+  int hasnul = 1;  /* nul byte padded char arrays? */
   int offset;
 
   SEXP vec_dat;  /* need all R types supported: INT/REAL/CPLX/RAW */
@@ -652,13 +653,20 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
   case STRSXP: /* {{{ */
     /* see https://svn.r-project.org/R/trunk/src/main/raw.c */
     /* fixed width character support */
-    for(i=0; i < LEN; i++) {
-      SET_STRING_ELT(dat, i,
-/*
-        mkChar( (const char *)&(data[(index_p[i]-1)*Cbytes]) ));
-*/
-        mkCharLenCE((const char *)&(data[(index_p[i]-1)*Cbytes]),
-                    Cbytes > 1 ? Cbytes - 1 : Cbytes, CE_NATIVE));
+    if( !isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul"))))
+      hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")));
+    if(hasnul) { 
+      for(i=0; i < LEN; i++) {
+        SET_STRING_ELT(dat, i,
+          mkCharLenCE((const char *)&(data[(index_p[i]-1)*Cbytes]),
+                      Cbytes-1, CE_NATIVE));
+      }
+    } else {  /* nul-padded char array */
+      for(i=0; i < LEN; i++) {
+        SET_STRING_ELT(dat, i,
+          mkCharLenCE((const char *)&(data[(index_p[i]-1)*Cbytes]),
+                      Cbytes, CE_NATIVE));
+      }
     }
     break; /* }}} */
   case RAWSXP: /* {{{ */
@@ -726,7 +734,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             if(fieldSigned) {   /* 2 byte */
             for(ii=0; ii<LEN; ii++) {
               memcpy(&sbuf, 
-                     &(byte_buf[ii*Cbytes+offset]),
+                     &(data[(index_p[ii]-1) * Cbytes + offset]),
                      sizeof(char)*sizeof(short));
               int_vec_dat[ii] = (int)sbuf;
             }
@@ -810,11 +818,21 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           UNPROTECT(1);
           break;
         case STRSXP:
+          hasnul = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
+                                      v),install("nul")))[0];
           PROTECT(vec_dat = allocVector(STRSXP, LEN));
-          for(ii=0; ii < LEN; ii++) {
-            SET_STRING_ELT(vec_dat, ii,
-              mkCharLenCE((const char *)&(byte_buf[ii*Cbytes+offset]),
-                        fieldCbytes-1, CE_NATIVE));
+          if(hasnul) {
+            for(ii=0; ii < LEN; ii++) {
+              SET_STRING_ELT(vec_dat, ii,
+                mkCharLenCE((const char *)&(byte_buf[ii*Cbytes+offset]),
+                          fieldCbytes-1, CE_NATIVE));
+            }
+          } else {  /* nul-padded char array */
+            for(ii=0; ii < LEN; ii++) {
+              SET_STRING_ELT(vec_dat, ii,
+                mkCharLenCE((const char *)&(byte_buf[ii*Cbytes+offset]),
+                          fieldCbytes, CE_NATIVE));
+            }
           }
           SET_VECTOR_ELT(dat, v, vec_dat);
           UNPROTECT(1);
@@ -845,6 +863,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
   int LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
   int Cbytes = MMAP_CBYTES(mmap_obj);
+  int hasnul = 1;
   /*int isSigned = MMAP_SIGNED(mmap_obj);*/
   int P=0;
 
@@ -881,7 +900,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
         else
           new_word = int_buf & nbitmask[ (index_p[i]-1)-(which_word*32) ];
         memcpy(&(data[which_word]), &(new_word), sizeof(int));
-Rprintf("i: %i\twhich_word: %i\tnew_word%i\n", i, which_word, new_word);
+//Rprintf("i: %i\twhich_word: %i\tnew_word%i\n", i, which_word, new_word);
       }
     } else {
     switch(Cbytes) {
@@ -1100,9 +1119,21 @@ Rprintf("i: %i\twhich_word: %i\tnew_word%i\n", i, which_word, new_word);
     } /* VECSXP }}} */
     break;
   case STRSXP:
-    for(i=0; i < LEN; i++) {
-      memcpy(&(data[(index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes);
+    /*
+    if( !isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul"))))
+      hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")));
+    if(hasnul) {
+    */
+      for(i=0; i < LEN; i++) {
+        memcpy(&(data[(index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes);
+      }
+    /*
+    } else {
+      for(i=0; i < LEN; i++) {
+        memcpy(&(data[(index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes-1);
+      }
     }
+    */
     break;
   case RAWSXP:
     byte_value = RAW(value);
@@ -1674,21 +1705,34 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
   case STRSXP: /* {{{ */
     /* see https://svn.r-project.org/R/trunk/src/main/raw.c */
     /* fixed width character support */
-    if(length(compare_to) > Cbytes-1) {
-      if(isNull(getAttrib(compare_how, install("partial")))) { /* TODO partial matching */
+    /*
+    if(length(compare_to) > isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul"))) ? Cbytes-1 : Cbytes) {
+      if(isNull(getAttrib(compare_how, install("partial")))) { 
         UNPROTECT(1); return allocVector(INTSXP,0);
       }  
       warning("only first %i characters of string compared", Cbytes-1);
     }
+    */
     cmp_to_raw = RAW(compare_to);
     int b;
-    for(i=0; i < LEN; i++) {
-        for(b=0; b < Cbytes-1; b++) {
-          if(cmp_to_raw[b] != data[i*Cbytes + b])
-            break;
-        }
-        if(b == Cbytes-1)
-          int_result[hits++] = i+1;
+    if(isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul")))) {
+      for(i=0; i < LEN; i++) {
+          for(b=0; b < Cbytes-1; b++) {
+            if(cmp_to_raw[b] != data[i*Cbytes + b])
+              break;
+          }
+          if(b == Cbytes-1)
+            int_result[hits++] = i+1;
+      }
+    } else {
+      for(i=0; i < LEN; i++) {
+          for(b=0; b < Cbytes; b++) {
+            if(cmp_to_raw[b] != data[i*Cbytes + b])
+              break;
+          }
+          if(b == Cbytes)
+            int_result[hits++] = i+1;
+      }
     }
     break; /* }}} */
   default:

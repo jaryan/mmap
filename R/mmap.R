@@ -69,7 +69,7 @@ print.mmap <- function(x, ...) {
   if(type_name == "struct") {
     firstN <- x[1][[1]]
   } else {
-  firstN <- x[1:min(6,NROW(x))]
+  firstN <- head(x)
   firstN <- if(cumsum(nchar(firstN))[length(firstN)] > 20) {
                 firstN[1:min(3,length(x))]
               } else {
