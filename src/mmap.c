@@ -1154,11 +1154,12 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
 SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
   int i;
   char *data, 
-       *char_buf[sizeof(char)], 
-       *int_buf[sizeof(int)], 
-       *short_buf[sizeof(short)],
-       *float_buf[sizeof(float)],
-       *real_buf[sizeof(double)];
+       *char_buf[sizeof(char)];
+
+  int intbuf;
+  short shortbuf;
+  float floatbuf;
+  double realbuf;
 
   /* 24 bit integers require a mask of the depending
      on whether the type is signed or unsigned */
@@ -1198,10 +1199,16 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     error("invalid mmap pointer");
 
   switch(mode) {
+  case LGLSXP:
+    /* bits, lgl8, lgl32 */
+    error("unimplemented type in comparison");
+    break;
   case INTSXP:
     cmp_to_int = INTEGER(coerceVector(compare_to,INTSXP))[0];
     /* needs to branch for
-        uint8, int8, uint16, int16, uint24, int24, int32 */
+        uint8, int8, uint16, int16, uint24, int24, int32 
+        FIXME int64 (in REALSXP branch)
+    */
     switch(Cbytes) {
     case 1: /* char int {{{ */
       if(isSigned) {
@@ -1297,87 +1304,87 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
       if(cmp_how==1) {
         cmp_to_int = (short)cmp_to_int;
         for(i=0;  i < LEN; i++) {
-          memcpy(short_buf, &(data[i * sizeof(short)]),sizeof(short));
+          memcpy(&shortbuf, &(data[i * sizeof(short)]),sizeof(short));
           //if(cmp_to_int == (int)(short)*(short *)(short_buf)) 
-          if(cmp_to_int == (short)*((short *)(void *)&short_buf)) 
+          if(cmp_to_int == shortbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==2) {
         for(i=0;  i < LEN; i++) {
-          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int != (int)(short)*((short *)(void *)&short_buf)) 
+          memcpy(&shortbuf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int != shortbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==3) {
         for(i=0;  i < LEN; i++) {
-          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int <= (int)(short)*((short *)(void *)&short_buf)) 
+          memcpy(&shortbuf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int <= shortbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==4) {
         for(i=0;  i < LEN; i++) {
-          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int >= (int)(short)*((short *)(void *)&short_buf)) 
+          memcpy(&shortbuf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int >= shortbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==5) {
         for(i=0;  i < LEN; i++) {
-          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int <  (int)(short)*((short *)(void *)&short_buf)) 
+          memcpy(&shortbuf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int <  shortbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==6) {
         for(i=0;  i < LEN; i++) {
-          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int >  (int)(short)*((short *)(void *)&short_buf)) 
+          memcpy(&shortbuf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int >  shortbuf)
             int_result[hits++] = i+1;
         }
       }
       } else { /* unsigned short */
       if(cmp_how==1) {
         for(i=0;  i < LEN; i++) {
-          memcpy(short_buf, &(data[i * sizeof(short)]),sizeof(short));
-          if(cmp_to_int == (int)(unsigned short)*((unsigned short *)(void *)&short_buf)) 
+          memcpy(&shortbuf, &(data[i * sizeof(short)]),sizeof(short));
+          if(cmp_to_int == (unsigned short)shortbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==2) {
         for(i=0;  i < LEN; i++) {
-          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int != (int)(unsigned short)*((unsigned short *)(void *)&short_buf)) 
+          memcpy(&shortbuf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int != (unsigned short)shortbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==3) {
         for(i=0;  i < LEN; i++) {
-          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int <= (int)(unsigned short)*((unsigned short *)(void *)&short_buf)) 
+          memcpy(&shortbuf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int <= (unsigned short)shortbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==4) {
         for(i=0;  i < LEN; i++) {
-          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int >= (int)(unsigned short)*((unsigned short *)(void *)&short_buf)) 
+          memcpy(&shortbuf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int >= (unsigned short)shortbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==5) {
         for(i=0;  i < LEN; i++) {
-          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int <  (int)(unsigned short)*((unsigned short *)(void *)&short_buf)) 
+          memcpy(&shortbuf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int <  (unsigned short)shortbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==6) {
         for(i=0;  i < LEN; i++) {
-          memcpy(short_buf, &(data[i * sizeof(short)]), sizeof(short));
-          if(cmp_to_int >  (int)(unsigned short)*((unsigned short *)(void *)&short_buf)) 
+          memcpy(&shortbuf, &(data[i * sizeof(short)]), sizeof(short));
+          if(cmp_to_int >  (unsigned short)shortbuf)
             int_result[hits++] = i+1;
         }
       } /* end of ushort */
@@ -1547,43 +1554,44 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     case 4: /* int {{{ */
       if(cmp_how==1) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-          if(cmp_to_int == *((int *)(void *)&int_buf)) 
+          memcpy(&intbuf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
+          //if(cmp_to_int == *((int *)(void *)&int_buf)) 
+          if(cmp_to_int == intbuf) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==2) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-          if(cmp_to_int != *((int *)(void *)&int_buf)) 
+          memcpy(&intbuf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
+          if(cmp_to_int != intbuf) //*((int *)(void *)&int_buf)) 
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==3) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-          if(cmp_to_int <= *((int *)(void *)&int_buf)) 
+          memcpy(&intbuf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
+          if(cmp_to_int <= intbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==4) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-          if(cmp_to_int >= *((int *)(void *)&int_buf)) 
+          memcpy(&intbuf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
+          if(cmp_to_int >= intbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==5) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-          if(cmp_to_int <  *((int *)(void *)&int_buf)) 
+          memcpy(&intbuf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
+          if(cmp_to_int <  intbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==6) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int_buf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
-          if(cmp_to_int >  *((int *)(void *)&int_buf)) 
+          memcpy(&intbuf, &(data[i * sizeof(int)]), sizeof(char) * sizeof(int));
+          if(cmp_to_int >  intbuf)
             int_result[hits++] = i+1;
         }
       }
@@ -1602,43 +1610,43 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     case sizeof(float):
       if(cmp_how==1) {
         for(i=0;  i < LEN; i++) {
-          memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
-          if(cmp_to_real == (double)(float)*((float *)(void *)&float_buf)) 
+          memcpy(&floatbuf, &(data[i * sizeof(float)]), sizeof(float));
+          if(cmp_to_real == (double)floatbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==2) {
         for(i=0;  i < LEN; i++) {
-          memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
-          if(cmp_to_real != (double)(float)*((float *)(void *)&float_buf)) 
+          memcpy(&floatbuf, &(data[i * sizeof(float)]), sizeof(float));
+          if(cmp_to_real != (double)floatbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==3) {
         for(i=0;  i < LEN; i++) {
-          memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
-          if(cmp_to_real <= (double)(float)*((float *)(void *)&float_buf)) 
+          memcpy(&floatbuf, &(data[i * sizeof(float)]), sizeof(float));
+          if(cmp_to_real <= (double)floatbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==4) {
         for(i=0;  i < LEN; i++) {
-          memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
-          if(cmp_to_real >= (double)(float)*((float *)(void *)&float_buf)) 
+          memcpy(&floatbuf, &(data[i * sizeof(float)]), sizeof(float));
+          if(cmp_to_real >= (double)floatbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==5) {
         for(i=0;  i < LEN; i++) {
-          memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
-          if(cmp_to_real <  (double)(float)*((float *)(void *)&float_buf)) 
+          memcpy(&floatbuf, &(data[i * sizeof(float)]), sizeof(float));
+          if(cmp_to_real <  (double)floatbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==6) {
         for(i=0;  i < LEN; i++) {
-          memcpy(float_buf, &(data[i * sizeof(float)]), sizeof(float));
-          if(cmp_to_real >  (double)(float)*((float *)(void *)&float_buf)) 
+          memcpy(&floatbuf, &(data[i * sizeof(float)]), sizeof(float));
+          if(cmp_to_real >  (double)floatbuf)
             int_result[hits++] = i+1;
         }
       }
@@ -1646,43 +1654,43 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     case sizeof(double):
       if(cmp_how==1) {
         for(i=0;  i < LEN; i++) {
-          memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
-          if(cmp_to_real == *((double *)(void *)&real_buf)) 
+          memcpy(&realbuf, &(data[i * sizeof(double)]), sizeof(double));
+          if(cmp_to_real == realbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==2) {
         for(i=0;  i < LEN; i++) {
-          memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
-          if(cmp_to_real != *((double *)(void *)&real_buf)) 
+          memcpy(&realbuf, &(data[i * sizeof(double)]), sizeof(double));
+          if(cmp_to_real != realbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==3) {
         for(i=0;  i < LEN; i++) {
-          memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
-          if(cmp_to_real <= *((double *)(void *)&real_buf)) 
+          memcpy(&realbuf, &(data[i * sizeof(double)]), sizeof(double));
+          if(cmp_to_real <= realbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==4) {
         for(i=0;  i < LEN; i++) {
-          memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
-          if(cmp_to_real >= *((double *)(void *)&real_buf)) 
+          memcpy(&realbuf, &(data[i * sizeof(double)]), sizeof(double));
+          if(cmp_to_real >= realbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==5) {
         for(i=0;  i < LEN; i++) {
-          memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
-          if(cmp_to_real <  *((double *)(void *)&real_buf)) 
+          memcpy(&realbuf, &(data[i * sizeof(double)]), sizeof(double));
+          if(cmp_to_real <  realbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==6) {
         for(i=0;  i < LEN; i++) {
-          memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(double));
-          if(cmp_to_real >  *((double *)(void *)&real_buf)) 
+          memcpy(&realbuf, &(data[i * sizeof(double)]), sizeof(double));
+          if(cmp_to_real >  realbuf)
             int_result[hits++] = i+1;
         }
       }
@@ -1735,6 +1743,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
       }
     }
     break; /* }}} */
+  case CPLXSXP:
   default:
     error("unsupported type");
     break;
