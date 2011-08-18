@@ -76,7 +76,7 @@ print.mmap <- function(x, ...) {
                 firstN
               }
   }
-  if( !is.null(dim(x))) { # has dim
+  if( !is.null(x$dim)) { # has dim
   cat(paste("<mmap:",file_name,">  (",class(x$storage.mode)[2],") ",
             type_name," [1:", nrow(x),", 1:", ncol(x),"]",sep=""),firstN,"...\n")
   } else {
