@@ -109,10 +109,13 @@ mmap <- function(file, mode=int32(),
                  ...) {
     if(missing(file))
       stop("'file' must be specified")
+    # pageoff is the offset from page boundary
+    # off is the page-aligned offset
+    #   e.g. off=22 would set off=0 and pageoff=22 on a system with 4096 page sizing
+    pageoff <- off %% pagesize()
+    off <- off - pageoff
     if(missing(len))
-      len <- file.info(file)$size
-    if(off %% pagesize() != 0L)
-      stop(paste("'off' must be a multiple of",pagesize(),"(pagesize)"))
+      len <- file.info(file)$size - off - pageoff
     
     mmap_obj <- .Call("mmap_mmap", 
                       as.Ctype(mode),
@@ -121,13 +124,8 @@ mmap <- function(file, mode=int32(),
                       as.integer(flags), 
                       as.double(len),
                       as.integer(off),
+                      as.integer(pageoff),
                       PKG="mmap")
-#    names(mmap_obj) <- c("data",
-#                         "bytes",
-#                         "filedesc",
-#                         "storage.mode",
-#                         "pagesize")
-#    mmap_obj <- list2env(mmap_obj)  # change list to env
     reg.finalizer(mmap_obj, mmap_finalizer, TRUE)
     mmap_obj$filedesc <- structure(mmap_obj$filedesc, .Names=file)
     mmap_obj$extractFUN <- extractFUN

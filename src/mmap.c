@@ -192,7 +192,7 @@ void mmap_finalizer (SEXP mmap_obj) {
 /* mmap_mmap AND mmap_finalizer {{{ */
 #ifdef WIN32
 SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
-                SEXP _flags, SEXP _len, SEXP _off) {
+                SEXP _flags, SEXP _len, SEXP _off, SEXP _pageoff) {
   char *data;
   struct stat st;
   SYSTEM_INFO sSysInfo;
@@ -207,6 +207,8 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   HANDLE hMap=CreateFileMapping(hFile,NULL,PAGE_READWRITE,0,0,NULL);
   DWORD dwFileSize=GetFileSize(hFile,NULL);
   data = (char *)MapViewOfFile(hMap,FILE_MAP_WRITE,0,0,dwFileSize);
+  /* advance ptr to byte offset from page boundary - shouldn't we do this above?? JR */
+  data = data + asInteger(_off) + asInteger(_pageoff); 
 
 
   SEXP mmap_obj;
@@ -216,29 +218,19 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   SET_HASHTAB(mmap_obj, R_NilValue);
   SET_ATTRIB(mmap_obj, R_NilValue);
   defineVar(install("data"), R_MakeExternalPtr(data, R_NilValue, R_NilValue),mmap_obj);
+  //defineVar(install("bytes"), ScalarReal(asReal(_len)-asInteger(_off)-asInteger(_pageoff)),mmap_obj);
   defineVar(install("bytes"), _len,mmap_obj);
   defineVar(install("filedesc"), ScalarInteger((int)hFile),mmap_obj);
   defineVar(install("storage.mode"), _type,mmap_obj);
   defineVar(install("pagesize"), ScalarReal((double)sSysInfo.dwPageSize),mmap_obj);
   defineVar(install("handle"), ScalarInteger((int)hMap),mmap_obj);
   defineVar(install("dim"), R_NilValue ,mmap_obj);
-
-/*
-  SEXP mmap_obj;
-  PROTECT(mmap_obj = allocVector(VECSXP,6));
-  SET_VECTOR_ELT(mmap_obj, 0, R_MakeExternalPtr(data,R_NilValue,R_NilValue));
-  SET_VECTOR_ELT(mmap_obj, 1, _len);
-  SET_VECTOR_ELT(mmap_obj, 2, ScalarInteger((int)hFile));
-  SET_VECTOR_ELT(mmap_obj, 3, _type);
-  SET_VECTOR_ELT(mmap_obj, 4, ScalarReal((double)sSysInfo.dwPageSize));
-  SET_VECTOR_ELT(mmap_obj, 5, ScalarInteger((int)hMap));
-*/
   UNPROTECT(1);
   return(mmap_obj);
 }
 #else
 SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
-                SEXP _flags, SEXP _len, SEXP _off) {
+                SEXP _flags, SEXP _len, SEXP _off, SEXP _pageoff) {
   int fd;
   char *data;
   struct stat st;
@@ -256,6 +248,7 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
 
   if(data == MAP_FAILED)
     error("unable to mmap file");
+  data = data + asInteger(_pageoff); /* advance ptr to byte offset from page boundary */
   
   SEXP mmap_obj;
   PROTECT(mmap_obj = allocSExp(ENVSXP));
@@ -264,28 +257,12 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   SET_HASHTAB(mmap_obj, R_NilValue);
   SET_ATTRIB(mmap_obj, R_NilValue);
   defineVar(install("data"), R_MakeExternalPtr(data, R_NilValue, R_NilValue),mmap_obj);
+  //defineVar(install("bytes"), ScalarReal(asReal(_len)-asInteger(_off)-asInteger(_pageoff)),mmap_obj);
   defineVar(install("bytes"), _len,mmap_obj);
   defineVar(install("filedesc"), ScalarInteger(fd),mmap_obj);
   defineVar(install("storage.mode"), _type,mmap_obj);
   defineVar(install("pagesize"), ScalarReal((double)sysconf(_SC_PAGE_SIZE)),mmap_obj);
   defineVar(install("dim"), R_NilValue ,mmap_obj);
-
-  /*
-  PROTECT(mmap_obj = allocVector(VECSXP,5));
-  SET_VECTOR_ELT(mmap_obj, 0, R_MakeExternalPtr(data,R_NilValue,R_NilValue));
-  SET_VECTOR_ELT(mmap_obj, 1, _len);               
-  SET_VECTOR_ELT(mmap_obj, 2, ScalarInteger(fd));
-  SET_VECTOR_ELT(mmap_obj, 3, _type);
-  SET_VECTOR_ELT(mmap_obj, 4, ScalarReal((double)sysconf(_SC_PAGE_SIZE)));   
-
-  need to register a finalizer to munmap in case GC'd
-  MM *mm;
-  mm = Calloc(1, MM);
-  mm[0].data = data;
-  mm[0].size = (long)REAL(_len)[0];
-  mm[0].fd = fd;
-  R_RegisterCFinalizerEx(R_MakeExternalPtr(&mm,R_NilValue,R_NilValue), mmap_finalizer, TRUE);
-  */
   UNPROTECT(1);
   return(mmap_obj);
 } /*}}}*/
