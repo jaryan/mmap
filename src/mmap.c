@@ -482,6 +482,9 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
         break;
       case 2: /* 2 byte short */
         if(isSigned) {
+        /* 
+        mmap_ushort_to_int(data, int_dat, index_p, LEN, upper_bound);
+        */
         for(i=0;  i < LEN; i++) {
           ival = (index_p[i]-1);
           if( ival > upper_bound || ival < 0 ) {
