@@ -785,7 +785,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                    sizeof(char)*sizeof(Rcomplex));
             complex_vec_dat[ii] = Rcomplexbuf;
           }
-          SET_VECTOR_ELT(dat, v, vec_dat);
+          SET_VECTOR_ELT(dat, fi, vec_dat);
           UNPROTECT(1);
           break;
         case RAWSXP: 
@@ -794,7 +794,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           for(ii=0; ii<LEN; ii++) {
             raw_vec_dat[ii] = (Rbyte)(byte_buf[ii*Cbytes+offset]);;
           }
-          SET_VECTOR_ELT(dat, v, vec_dat);
+          SET_VECTOR_ELT(dat, fi, vec_dat);
           UNPROTECT(1);
           break;
         case STRSXP:
@@ -814,7 +814,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                           fieldCbytes, CE_NATIVE));
             }
           }
-          SET_VECTOR_ELT(dat, v, vec_dat);
+          SET_VECTOR_ELT(dat, fi, vec_dat);
           UNPROTECT(1);
           break; 
         default:
