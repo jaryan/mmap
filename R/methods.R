@@ -4,7 +4,10 @@ Ops.mmap <- function(e1,e2) {
                          ">="=3L,
                          "<="=4L,
                          ">"= 5L,
-                         "<"= 6L)
+                         "<"= 6L,
+                             -1L)
+  if(OPS == -1L)
+    stop(paste(.Generic,"unsupported for 'mmap' objects"))
   if(is.mmap(e1)) {
     if(storage.mode(e1$storage.mode) == "character")
       e2 <- charToRaw(e2)

@@ -1837,8 +1837,10 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
 SEXP convert_ij_to_i (SEXP rows, SEXP i, SEXP j) {
   /* utility to take i,j subsets for matrix objects and
      convert to subset column-major array in memory */
-  int n=0, jj, ii, lenj=length(j), leni=length(i);
-  int _rows = INTEGER(rows)[0];
+  long n=0, jj, ii, lenj=length(j), leni=length(i);
+  //int _rows = INTEGER(rows)[0];
+  long _rows = ((long)REAL(rows)[0]);
+
   SEXP newi;
   int *_j, *_i, *_newi;
 

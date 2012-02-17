@@ -180,7 +180,7 @@ is.mmap <- function(x) {
     if( missing(j))
       j <- 1:dim(x)[2]
     DIM <- c(length(i),length(j))
-    i <- .Call("convert_ij_to_i", dim(x)[1], as.integer(i), as.integer(j))
+    i <- .Call("convert_ij_to_i", as.double(dim(x)[1]), as.integer(i), as.integer(j))
     j <- 1L
   }
   j <- j[j>0] # only positive values
@@ -214,7 +214,7 @@ is.mmap <- function(x) {
       j <- 1:dim(x)[2]
     if(is.character(j))
       j <- match(j, names(x$dimnames))
-    i <- .Call("convert_ij_to_i", dim(x)[1], as.integer(i), as.integer(j))
+    i <- .Call("convert_ij_to_i", as.double(dim(x)[1]), as.integer(i), as.integer(j))
     j <- 1L
     if(length(i) != length(value))
       value <- rep(value, length.out=length(i))
@@ -232,9 +232,9 @@ length.mmap <- function(x) {
   size_in_bytes <- x$bytes
   size <- attr(x$storage.mode,"bytes")
   if( class(x$storage.mode)[2] == 'bits')
-    as.integer(size_in_bytes/size) * 32L
+    trunc(size_in_bytes/size) * 32L
   else
-  as.integer(size_in_bytes/size)
+  trunc(size_in_bytes/size)
 }
 
 `length<-.mmap` <- function(x, value) {

@@ -4,17 +4,17 @@ tmp <- tempfile()
 ##### int8() #####
 # write binary from min to max signed 2^8
 test.int8 <- function() {
-writeBin(-128:127L, tmp, size=1)
-
-m <- mmap(tmp, int8())  # signed 1 byte integers
-if( !all(m[] == (-128:127L)) )
-  stop("m[] == (-128:127L)")
-
-# test replacement
-m[] <- -128L
-if( !all(m[] == -128))
-  stop("m[] == -128")
-munmap(m)
+  writeBin(-128:127L, tmp, size=1)
+  
+  m <- mmap(tmp, int8())  # signed 1 byte integers
+  if( !all(m[] == (-128:127L)) )
+    stop("m[] == (-128:127L)")
+  
+  # test replacement
+  m[] <- -128L
+  if( !all(m[] == -128))
+    stop("m[] == -128")
+  munmap(m)
 }
 
 
