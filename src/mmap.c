@@ -1803,7 +1803,12 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     */
     cmp_to_raw = RAW(compare_to);
     int b;
-    if(isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul")))) {
+    int hasnul = 1;
+    if( !isNull(getAttrib(MMAP_SMODE(mmap_obj), install("nul"))))
+      hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")));
+
+    //if(isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul")))) {
+    if(hasnul) {
       for(i=0; i < LEN; i++) {
           for(b=0; b < Cbytes-1; b++) {
             if(cmp_to_raw[b] != data[i*Cbytes + b])
@@ -1821,6 +1826,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
           if(b == Cbytes)
             int_result[hits++] = i+1;
       }
+      /* need a branch for nul=FALSE (e.g. Cbytes-0) */
     }
     break; /* }}} */
   case CPLXSXP:
