@@ -604,7 +604,6 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
         } else {
         for(i=0;  i < LEN; i++) {
           ival = ((long)index_p[i]-1);
-Rprintf("ival: %i\n", ival);
           if( ival > upper_bound || ival < 0 )
             error("'i=%i' out of bounds", index_p[i]);
           memcpy(&realbuf, 
