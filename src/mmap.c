@@ -410,8 +410,10 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
   SEXP vec_dat;  /* need all R types supported: INT/REAL/CPLX/RAW */
   int *int_vec_dat; 
   double *real_vec_dat;
+  char *str;  /* temp store for string cp */
   Rcomplex *complex_vec_dat;
   Rbyte *raw_vec_dat;
+
 
   switch(mode) {
   case LGLSXP: /* {{{ */
@@ -637,15 +639,23 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
       hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")));
     if(hasnul) { 
       for(i=0; i < LEN; i++) {
+        str = &(data[((long)index_p[i]-1)*Cbytes]);
         SET_STRING_ELT(dat, i,
-          mkCharLenCE((const char *)&(data[((long)index_p[i]-1)*Cbytes]),
-                      Cbytes-1, CE_NATIVE));
+          mkChar( (const char *)str));
+          //mkChar( (const char *)&(data[((long)index_p[i]-1)*Cbytes]) ));
+          //mkCharLenCE((const char *)&(data[((long)index_p[i]-1)*Cbytes]),
+          //            Cbytes-1, CE_NATIVE));
+          //mkCharLenCE((const char *)&(data[((long)index_p[i]-1)*Cbytes]),
+                      //strlen(&(data[((long)index_p[i]-1)*Cbytes])) /*Cbytes*/, CE_NATIVE));
+          //            (strlen(str) > Cbytes ? Cbytes : strlen(str))-1, CE_NATIVE));
       }
     } else {  /* nul-padded char array */
       for(i=0; i < LEN; i++) {
+        str = &(data[((long)index_p[i]-1)*Cbytes]);
         SET_STRING_ELT(dat, i,
           mkCharLenCE((const char *)&(data[((long)index_p[i]-1)*Cbytes]),
-                      Cbytes, CE_NATIVE));
+                      //strlen(&(data[((long)index_p[i]-1)*Cbytes])) /*Cbytes*/, CE_NATIVE));
+                      (strlen(str) > Cbytes ? Cbytes : strlen(str)), CE_NATIVE));
       }
     }
     break; /* }}} */
@@ -803,15 +813,19 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           PROTECT(vec_dat = allocVector(STRSXP, LEN));
           if(hasnul) {
             for(ii=0; ii < LEN; ii++) {
+              str = &(byte_buf[ii*Cbytes+offset]);
               SET_STRING_ELT(vec_dat, ii,
-                mkCharLenCE((const char *)&(byte_buf[ii*Cbytes+offset]),
-                          fieldCbytes-1, CE_NATIVE));
+                mkChar( (const char *)str));
+                //mkCharLenCE((const char *)&(byte_buf[ii*Cbytes+offset]),
+                //          fieldCbytes-1, CE_NATIVE));
             }
           } else {  /* nul-padded char array */
             for(ii=0; ii < LEN; ii++) {
+              str = &(byte_buf[ii*Cbytes+offset]);
               SET_STRING_ELT(vec_dat, ii,
                 mkCharLenCE((const char *)&(byte_buf[ii*Cbytes+offset]),
-                          fieldCbytes, CE_NATIVE));
+                      //    fieldCbytes, CE_NATIVE));
+                      (strlen(str) > fieldCbytes ? fieldCbytes : strlen(str)), CE_NATIVE));
             }
           }
           SET_VECTOR_ELT(dat, fi, vec_dat);
@@ -1106,6 +1120,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
     if(hasnul) {
     */
       for(i=0; i < LEN; i++) {
+        memset(&(data[(index_p[i]-1)*Cbytes]), '\0', Cbytes);
         memcpy(&(data[(index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes);
       }
     /*
