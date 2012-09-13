@@ -1101,6 +1101,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
           LEN = length(VECTOR_ELT(value, fi));
           PROTECT(string_value = VECTOR_ELT(value, fi));
           for(i=0; i < LEN; i++) {
+            memset(&(data[(index_p[i]-1)*Cbytes+offset]), '\0', fieldCbytes);  /* clear fixed width */
             memcpy(&(data[(index_p[i]-1)*Cbytes+offset]), 
                    CHAR(STRING_ELT(string_value, i)), 
                    fieldCbytes);
@@ -1114,15 +1115,18 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
     } /* VECSXP }}} */
     break;
   case STRSXP:
-    /*
-    if( !isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul"))))
-      hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")));
-    if(hasnul) {
-    */
+    if( !isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul"))) &&
+        asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")))) {
+      for(i=0; i < LEN; i++) {
+        memset(&(data[(index_p[i]-1)*Cbytes]), '\0', Cbytes);
+        memcpy(&(data[(index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes-1);
+      }
+    } else {
       for(i=0; i < LEN; i++) {
         memset(&(data[(index_p[i]-1)*Cbytes]), '\0', Cbytes);
         memcpy(&(data[(index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes);
       }
+    }
     /*
     } else {
       for(i=0; i < LEN; i++) {
@@ -1153,7 +1157,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
 
 /* {{{ mmap_compare */
 SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
-  int i;
+  int i,b;
   char *data;
 
   unsigned char charbuf;
@@ -1190,6 +1194,9 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
 
   //int *int_dat;
   //double *real_dat;
+  char *cmp_str;
+  int cmp_len;
+  char *str_buf;
   int hits=0;
   int cmp_to_int;
   double cmp_to_real;
@@ -1815,8 +1822,9 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
       warning("only first %i characters of string compared", Cbytes-1);
     }
     */
+    cmp_len = length(compare_to);
     cmp_to_raw = RAW(compare_to);
-    int b;
+    char *str;
     int hasnul = 1;
     if( !isNull(getAttrib(MMAP_SMODE(mmap_obj), install("nul"))))
       hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")));
@@ -1824,23 +1832,33 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     //if(isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul")))) {
     if(hasnul) {
       for(i=0; i < LEN; i++) {
-          for(b=0; b < Cbytes-1; b++) {
-            if(cmp_to_raw[b] != data[i*Cbytes + b])
-              break;
-          }
-          if(b == Cbytes-1)
-            int_result[hits++] = i+1;
+        str = &(data[i*Cbytes]);
+        //Rprintf("strnlen(str,6):%i\n",strnlen(str,6));
+        if(strnlen(str,Cbytes) != cmp_len)
+          continue;
+        if(memcmp(str,cmp_to_raw,cmp_len)==0)
+          int_result[hits++] = i+1;
       }
+//      for(i=0; i < LEN; i++) {
+//          //for(b=0; b < Cbytes-1; b++) {
+//          for(b=0; b < cmp_len; b++) {
+//            Rprintf("%c == %c,", cmp_to_raw[b], data[i*Cbytes+b]);
+//            if(cmp_to_raw[b] != data[i*Cbytes + b])
+//              break;
+//          }
+//          Rprintf("\n");
+//          if(b == Cbytes-1)
+//            int_result[hits++] = i+1;
+//      }
     } else {
       for(i=0; i < LEN; i++) {
-          for(b=0; b < Cbytes; b++) {
-            if(cmp_to_raw[b] != data[i*Cbytes + b])
-              break;
-          }
-          if(b == Cbytes)
-            int_result[hits++] = i+1;
+        str = &(data[i*Cbytes]);
+        //Rprintf("strnlen(str,6):%i\n",strnlen(str,6));
+        if(strnlen(str,Cbytes) != cmp_len)
+          continue;
+        if(memcmp(str,cmp_to_raw,cmp_len)==0)
+          int_result[hits++] = i+1;
       }
-      /* need a branch for nul=FALSE (e.g. Cbytes-0) */
     }
     break; /* }}} */
   case CPLXSXP:
