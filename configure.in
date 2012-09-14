@@ -1,4 +1,4 @@
-AC_INIT(mmap, 0.6-7)
+AC_INIT(mmap, 0.6-10)
 
 AC_CONFIG_HEADERS([src/config.h])
 AC_PROG_CC
@@ -9,4 +9,5 @@ AC_CHECK_ALIGNOF(short)
 AC_CHECK_ALIGNOF(long)
 AC_CHECK_ALIGNOF(double)
 AC_CHECK_FUNCS(madvise)
+AC_CHECK_FUNCS(strnlen)
 AC_OUTPUT

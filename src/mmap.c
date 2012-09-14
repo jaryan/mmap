@@ -639,7 +639,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
       hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")));
     if(hasnul) { 
       for(i=0; i < LEN; i++) {
-        str = &(data[((long)index_p[i]-1)*Cbytes]);
+        str = (char *)(&(data[((long)index_p[i]-1)*Cbytes]));
         SET_STRING_ELT(dat, i,
           mkChar( (const char *)str));
           //mkChar( (const char *)&(data[((long)index_p[i]-1)*Cbytes]) ));
@@ -651,7 +651,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
       }
     } else {  /* nul-padded char array */
       for(i=0; i < LEN; i++) {
-        str = &(data[((long)index_p[i]-1)*Cbytes]);
+        str = (char *)(&(data[((long)index_p[i]-1)*Cbytes]));
         SET_STRING_ELT(dat, i,
           mkCharLenCE((const char *)&(data[((long)index_p[i]-1)*Cbytes]),
                       //strlen(&(data[((long)index_p[i]-1)*Cbytes])) /*Cbytes*/, CE_NATIVE));
@@ -1825,6 +1825,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     cmp_len = length(compare_to);
     cmp_to_raw = RAW(compare_to);
     char *str;
+    int str_len;
     int hasnul = 1;
     if( !isNull(getAttrib(MMAP_SMODE(mmap_obj), install("nul"))))
       hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")));
@@ -1833,8 +1834,10 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     if(hasnul) {
       for(i=0; i < LEN; i++) {
         str = &(data[i*Cbytes]);
+        str_len = strlen(str);
+        str_len = (str_len > Cbytes) ? Cbytes : str_len;
         //Rprintf("strnlen(str,6):%i\n",strnlen(str,6));
-        if(strnlen(str,Cbytes) != cmp_len)
+        if(str_len != cmp_len)
           continue;
         if(memcmp(str,cmp_to_raw,cmp_len)==0)
           int_result[hits++] = i+1;
@@ -1853,8 +1856,10 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     } else {
       for(i=0; i < LEN; i++) {
         str = &(data[i*Cbytes]);
+        str_len = strlen(str);
+        str_len = (str_len > Cbytes) ? Cbytes : str_len;
         //Rprintf("strnlen(str,6):%i\n",strnlen(str,6));
-        if(strnlen(str,Cbytes) != cmp_len)
+        if(str_len != cmp_len)
           continue;
         if(memcmp(str,cmp_to_raw,cmp_len)==0)
           int_result[hits++] = i+1;
