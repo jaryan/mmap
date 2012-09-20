@@ -411,6 +411,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
   int *int_vec_dat; 
   double *real_vec_dat;
   char *str;  /* temp store for string cp */
+  char *str_buf = R_alloc(sizeof(char), Cbytes+1); /* len+\0 */ 
   Rcomplex *complex_vec_dat;
   Rbyte *raw_vec_dat;
 
@@ -652,10 +653,12 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
     } else {  /* nul-padded char array */
       for(i=0; i < LEN; i++) {
         str = (char *)(&(data[((long)index_p[i]-1)*Cbytes]));
-        SET_STRING_ELT(dat, i,
-          mkCharLenCE((const char *)&(data[((long)index_p[i]-1)*Cbytes]),
+        strncpy(str_buf, str, Cbytes);
+        str_buf[Cbytes] = '\0';
+        SET_STRING_ELT(dat, i, mkChar( (const char *)str_buf));
+          //mkCharLenCE((const char *)&(data[((long)index_p[i]-1)*Cbytes]),
                       //strlen(&(data[((long)index_p[i]-1)*Cbytes])) /*Cbytes*/, CE_NATIVE));
-                      (strlen(str) > Cbytes ? Cbytes : strlen(str)), CE_NATIVE));
+         //             Cbytes, CE_NATIVE));
       }
     }
     break; /* }}} */
@@ -813,7 +816,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           PROTECT(vec_dat = allocVector(STRSXP, LEN));
           if(hasnul) {
             for(ii=0; ii < LEN; ii++) {
-              str = &(byte_buf[ii*Cbytes+offset]);
+              str = (char *)&(byte_buf[ii*Cbytes+offset]);
               SET_STRING_ELT(vec_dat, ii,
                 mkChar( (const char *)str));
                 //mkCharLenCE((const char *)&(byte_buf[ii*Cbytes+offset]),
@@ -821,7 +824,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             }
           } else {  /* nul-padded char array */
             for(ii=0; ii < LEN; ii++) {
-              str = &(byte_buf[ii*Cbytes+offset]);
+              str = (char *)&(byte_buf[ii*Cbytes+offset]);
               SET_STRING_ELT(vec_dat, ii,
                 mkCharLenCE((const char *)&(byte_buf[ii*Cbytes+offset]),
                       //    fieldCbytes, CE_NATIVE));
@@ -1157,7 +1160,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
 
 /* {{{ mmap_compare */
 SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
-  int i,b;
+  int i;
   char *data;
 
   unsigned char charbuf;
@@ -1194,9 +1197,8 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
 
   //int *int_dat;
   //double *real_dat;
-  char *cmp_str;
+  //char *cmp_str;
   int cmp_len;
-  char *str_buf;
   int hits=0;
   int cmp_to_int;
   double cmp_to_real;
@@ -1826,6 +1828,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     cmp_to_raw = RAW(compare_to);
     char *str;
     int str_len;
+    char *str_buf = R_alloc(sizeof(char), Cbytes);
     int hasnul = 1;
     if( !isNull(getAttrib(MMAP_SMODE(mmap_obj), install("nul"))))
       hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")));
@@ -1834,11 +1837,12 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     if(hasnul) {
       for(i=0; i < LEN; i++) {
         str = &(data[i*Cbytes]);
-        str_len = strlen(str);
-        str_len = (str_len > Cbytes) ? Cbytes : str_len;
+        //strncpy(str_buf, str, Cbytes);
+        //str_len = strlen(str_buf);
+        //str_len = (str_len > Cbytes) ? Cbytes : str_len;
         //Rprintf("strnlen(str,6):%i\n",strnlen(str,6));
-        if(str_len != cmp_len)
-          continue;
+        //if(str_len != cmp_len)
+          //continue;
         if(memcmp(str,cmp_to_raw,cmp_len)==0)
           int_result[hits++] = i+1;
       }
@@ -1856,7 +1860,8 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     } else {
       for(i=0; i < LEN; i++) {
         str = &(data[i*Cbytes]);
-        str_len = strlen(str);
+        strncpy(str_buf, str, Cbytes);
+        str_len = strlen(str_buf);
         str_len = (str_len > Cbytes) ? Cbytes : str_len;
         //Rprintf("strnlen(str,6):%i\n",strnlen(str,6));
         if(str_len != cmp_len)
