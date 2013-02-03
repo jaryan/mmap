@@ -881,9 +881,9 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
   if(mode != VECSXP) {
     PROTECT(value = coerceVector(value, mode)); P++;
   }
-  PROTECT(index = coerceVector(index, INTSXP) ); P++;
+  PROTECT(index = coerceVector(index, REALSXP) ); P++;
   PROTECT(field = coerceVector(field, INTSXP) ); P++;
-  int *index_p = INTEGER(index);
+  double *index_p = REAL(index);
   int which_word, new_word, int_buf;
   switch(mode) {
   case LGLSXP:
@@ -891,12 +891,12 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
     upper_bound = (MMAP_SIZE(mmap_obj)-Cbytes); 
     if( strcmp(MMAP_CTYPE(mmap_obj), "bits") == 0) {  /* bits() */
       for(i=0; i < LEN; i++) {
-        which_word = (int) ((index_p[i]-1)/32);
+        which_word = (int) (((long)index_p[i]-1)/32);
         memcpy(&int_buf, &(data[which_word]), sizeof(int));
         if(lgl_value[i])
-          new_word = int_buf | bitmask[ (index_p[i]-1)-(which_word*32) ];
+          new_word = int_buf | bitmask[ ((long)index_p[i]-1)-(which_word*32) ];
         else
-          new_word = int_buf & nbitmask[ (index_p[i]-1)-(which_word*32) ];
+          new_word = int_buf & nbitmask[ ((long)index_p[i]-1)-(which_word*32) ];
         memcpy(&(data[which_word]), &(new_word), sizeof(int));
 //Rprintf("i: %i\twhich_word: %i\tnew_word%i\n", i, which_word, new_word);
       }
@@ -904,20 +904,20 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
     switch(Cbytes) {
       case sizeof(char): /* logi8 */
         for(i=0; i < LEN; i++) {
-          ival = (index_p[i]-1)*sizeof(char);
+          ival = ((long)index_p[i]-1)*sizeof(char);
           if( ival > upper_bound || ival < 0 )
-            error("'i=%i' out of bounds", index_p[i]);
+            error("'i=%i' out of bounds", (long)index_p[i]);
           char_value = (unsigned char)(lgl_value[i]);
-          memcpy(&(data[(index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
+          memcpy(&(data[((long)index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
         }
         break;
       case sizeof(int): /* logi32 */
         for(i=0; i < LEN; i++) {
-          ival = (index_p[i]-1)*sizeof(int);
+          ival = ((long)index_p[i]-1)*sizeof(int);
           if( ival > upper_bound || ival < 0 )
             error("'i=%i' out of bounds", index_p[i]);
           /* endianess issues are here -- FIXME */
-          memcpy(&(data[(index_p[i]-1)*sizeof(int)]), &(lgl_value[i]), sizeof(int));
+          memcpy(&(data[((long)index_p[i]-1)*sizeof(int)]), &(lgl_value[i]), sizeof(int));
         }
         break;
       default:
@@ -932,36 +932,36 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
     switch(Cbytes) {
       case sizeof(char): /* 1 byte char */
         for(i=0;  i < LEN; i++) {
-          ival = (index_p[i]-1)*sizeof(char);
+          ival = ((long)index_p[i]-1)*sizeof(char);
           if( ival > upper_bound || ival < 0 )
-            error("'i=%i' out of bounds", index_p[i]);
+            error("'i=%i' out of bounds", (long)index_p[i]);
           char_value = (unsigned char)(int_value[i]); 
-          memcpy(&(data[(index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
+          memcpy(&(data[((long)index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
         }
       break;
       case sizeof(short): /* 2 byte short */
         for(i=0;  i < LEN; i++) {
-          ival = (index_p[i]-1)*sizeof(short);
+          ival = ((long)index_p[i]-1)*sizeof(short);
           if( ival > upper_bound || ival < 0 )
             error("'i=%i' out of bounds", index_p[i]);
           short_value = (unsigned short)(int_value[i]); 
-          memcpy(&(data[(index_p[i]-1)*sizeof(short)]), &(short_value), sizeof(short));
+          memcpy(&(data[((long)index_p[i]-1)*sizeof(short)]), &(short_value), sizeof(short));
         }
       break;
       case 3: /* case 3 byte */
       for(i=0;  i < LEN; i++) {
-        ival = (index_p[i]-1)*3;
+        ival = ((long)index_p[i]-1)*3;
         if( ival > upper_bound || ival < 0 )
           error("'i=%i' out of bounds", index_p[i]);
-        memcpy(&(data[(index_p[i]-1)*3]), &(int_value[i]), 3);
+        memcpy(&(data[((long)index_p[i]-1)*3]), &(int_value[i]), 3);
       }
       break;
       case sizeof(int): /* 4 byte int */
         for(i=0;  i < LEN; i++) {
-          ival = (index_p[i]-1)*sizeof(int);
+          ival = ((long)index_p[i]-1)*sizeof(int);
           if( ival > upper_bound || ival < 0 )
             error("'i=%i' out of bounds", index_p[i]);
-          memcpy(&(data[(index_p[i]-1)*sizeof(int)]), &(int_value[i]), sizeof(int));
+          memcpy(&(data[((long)index_p[i]-1)*sizeof(int)]), &(int_value[i]), sizeof(int));
         }
         break;
     }
@@ -972,28 +972,28 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
     switch(Cbytes) {
       case sizeof(float): /* 4 byte float */
       for(i=0;  i < LEN; i++) {
-        ival =  (index_p[i]-1)*sizeof(float);
+        ival =  ((long)index_p[i]-1)*sizeof(float);
         if( ival > upper_bound || ival < 0 )
           error("'i=%i' out of bounds", i);
         float_value = (float)(real_value[i]);
-        memcpy(&(data[(index_p[i]-1)*sizeof(float)]), &(float_value), sizeof(float));
+        memcpy(&(data[((long)index_p[i]-1)*sizeof(float)]), &(float_value), sizeof(float));
       }
       break;
       case sizeof(double): /* 8 byte double */
       if( strcmp(MMAP_CTYPE(mmap_obj), "int64") == 0) { /* stored as long */
       for(i=0;  i < LEN; i++) {
-        ival =  (index_p[i]-1)*sizeof(double);
+        ival =  ((long)index_p[i]-1)*sizeof(double);
         if( ival > upper_bound || ival < 0 )
           error("'i=%i' out of bounds", i);
         long_value = (long)(real_value[i]);
-        memcpy(&(data[(index_p[i]-1)*sizeof(long)]), &(long_value), sizeof(long));
+        memcpy(&(data[((long)index_p[i]-1)*sizeof(long)]), &(long_value), sizeof(long));
       }
       } else {
       for(i=0;  i < LEN; i++) {
-        ival =  (index_p[i]-1)*sizeof(double);
+        ival =  ((long)index_p[i]-1)*sizeof(double);
         if( ival > upper_bound || ival < 0 )
           error("'i=%i' out of bounds", i);
-        memcpy(&(data[(index_p[i]-1)*sizeof(double)]), &(real_value[i]), sizeof(double));
+        memcpy(&(data[((long)index_p[i]-1)*sizeof(double)]), &(real_value[i]), sizeof(double));
       }
       }
       break;
@@ -1026,7 +1026,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
                 error("'i=%i' out of bounds", index_p[i]);
               */
               char_value = (unsigned char)(int_value[i]); 
-              memcpy(&(data[(index_p[i]-1)*Cbytes+offset]), 
+              memcpy(&(data[((long)index_p[i]-1)*Cbytes+offset]), 
                      &(char_value), 
                      fieldCbytes);
             }
@@ -1035,14 +1035,14 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
             if(fieldSigned) {
               for(i=0; i < LEN; i++) {
                 short_value = (short)(int_value[i]);
-                memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
+                memcpy(&(data[((long)index_p[i]-1)*Cbytes+offset]),
                        &short_value,
                        fieldCbytes);
               }
             } else {
               for(i=0; i < LEN; i++) {
                 short_value = (unsigned short)(int_value[i]);
-                memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
+                memcpy(&(data[((long)index_p[i]-1)*Cbytes+offset]),
                        &short_value,
                        fieldCbytes);
               }
@@ -1050,7 +1050,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
             break;
             case sizeof(int):
               for(i=0; i < LEN; i++) {
-                memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
+                memcpy(&(data[((long)index_p[i]-1)*Cbytes+offset]),
                        &(int_value[i]),
                        sizeof(int));
               }
@@ -1066,14 +1066,14 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
             case sizeof(float):
             for(i=0; i < LEN; i++) {
               float_value = (float)(real_value[i]);
-              memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
+              memcpy(&(data[((long)index_p[i]-1)*Cbytes+offset]),
                      &float_value,
                      sizeof(float));
             }
             break;
           case sizeof(double):
             for(i=0; i < LEN; i++) {
-              memcpy(&(data[(index_p[i]-1)*Cbytes+offset]),
+              memcpy(&(data[((long)index_p[i]-1)*Cbytes+offset]),
                      /*&(REAL(VECTOR_ELT(value,v))[i]),*/
                      &(real_value[i]),
                      sizeof(double));
@@ -1095,7 +1095,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
                 error("'i=%i' out of bounds", index_p[i]);
               */
             char_value = (unsigned char)(byte_value[i]); 
-            memcpy(&(data[(index_p[i]-1)*Cbytes+offset]), 
+            memcpy(&(data[((long)index_p[i]-1)*Cbytes+offset]), 
                    &(char_value), 
                    fieldCbytes);
           }
@@ -1104,8 +1104,8 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
           LEN = length(VECTOR_ELT(value, fi));
           PROTECT(string_value = VECTOR_ELT(value, fi));
           for(i=0; i < LEN; i++) {
-            memset(&(data[(index_p[i]-1)*Cbytes+offset]), '\0', fieldCbytes);  /* clear fixed width */
-            memcpy(&(data[(index_p[i]-1)*Cbytes+offset]), 
+            memset(&(data[((long)index_p[i]-1)*Cbytes+offset]), '\0', fieldCbytes);  /* clear fixed width */
+            memcpy(&(data[((long)index_p[i]-1)*Cbytes+offset]), 
                    CHAR(STRING_ELT(string_value, i)), 
                    fieldCbytes);
           }
@@ -1121,13 +1121,13 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
     if( !isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul"))) &&
         asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")))) {
       for(i=0; i < LEN; i++) {
-        memset(&(data[(index_p[i]-1)*Cbytes]), '\0', Cbytes);
-        memcpy(&(data[(index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes-1);
+        memset(&(data[((long)index_p[i]-1)*Cbytes]), '\0', Cbytes);
+        memcpy(&(data[((long)index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes-1);
       }
     } else {
       for(i=0; i < LEN; i++) {
-        memset(&(data[(index_p[i]-1)*Cbytes]), '\0', Cbytes);
-        memcpy(&(data[(index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes);
+        memset(&(data[((long)index_p[i]-1)*Cbytes]), '\0', Cbytes);
+        memcpy(&(data[((long)index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes);
       }
     }
     /*
@@ -1141,13 +1141,13 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
   case RAWSXP:
     byte_value = RAW(value);
     for(i=0; i < LEN; i++) {
-      memcpy(&(data[(index_p[i]-1)]), &(byte_value[i]), Cbytes);
+      memcpy(&(data[((long)index_p[i]-1)]), &(byte_value[i]), Cbytes);
     }
     break;
   case CPLXSXP:
     complex_value = COMPLEX(value);
     for(i=0; i < LEN; i++) {
-      memcpy(&(data[(index_p[i]-1)*sizeof(Rcomplex)]), &(complex_value[i]), sizeof(Rcomplex));
+      memcpy(&(data[((long)index_p[i]-1)*sizeof(Rcomplex)]), &(complex_value[i]), sizeof(Rcomplex));
     }
     break;
   default:
