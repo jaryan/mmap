@@ -422,7 +422,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
     if( strcmp(MMAP_CTYPE(mmap_obj), "bits") == 0) { /* bits */
       lgl_dat = LOGICAL(dat);
       for(i=0;  i < LEN; i++) {
-        int which_word = (int) ((index_p[i]-1)/32);
+        long which_word = (long) ((long)(index_p[i]-1)/32);
         memcpy(&intbuf, 
                &(data[which_word]),
                sizeof(char)*sizeof(int));
@@ -884,14 +884,15 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
   PROTECT(index = coerceVector(index, REALSXP) ); P++;
   PROTECT(field = coerceVector(field, INTSXP) ); P++;
   double *index_p = REAL(index);
-  int which_word, new_word, int_buf;
+  int new_word, int_buf;
+  long which_word;
   switch(mode) {
   case LGLSXP:
     lgl_value = LOGICAL(value);
     upper_bound = (MMAP_SIZE(mmap_obj)-Cbytes); 
     if( strcmp(MMAP_CTYPE(mmap_obj), "bits") == 0) {  /* bits() */
       for(i=0; i < LEN; i++) {
-        which_word = (int) (((long)index_p[i]-1)/32);
+        which_word = (long) (((long)index_p[i]-1)/32);
         memcpy(&int_buf, &(data[which_word]), sizeof(int));
         if(lgl_value[i])
           new_word = int_buf | bitmask[ ((long)index_p[i]-1)-(which_word*32) ];
