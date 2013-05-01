@@ -674,8 +674,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
     }
     break; /* }}} */
   case VECSXP:  /* corresponds to C struct for mmap package {{{ */
-    PROTECT(byteBuf = allocVector(RAWSXP,LEN*Cbytes)); P++;
-    byte_buf = RAW(byteBuf);
+    ////PROTECT(byteBuf = allocVector(RAWSXP,LEN*Cbytes)); P++;
+    ////byte_buf = RAW(byteBuf);
     /* extract_struct:
       
        - bytes in struct from MMAP_CBYTES
@@ -685,7 +685,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
            copy bytes by location into TYPEd array
        - collect arrays into VECSXP dat
     */
-    for(i=0; i<LEN; i++) {
+    ////for(i=0; i<LEN; i++) {
       /* byte_buf (byteBuf) now has all bytes for the resulting struct
          copied from the current data.
 
@@ -696,10 +696,10 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
 
          Is this even needed?  Seems like our loops below handle the copies... JR
       */
-      memcpy(&(byte_buf[i*Cbytes]),
-             &(data[((long)index_p[i]-1) * Cbytes]),
-             Cbytes); 
-    }  
+      ////memcpy(&(byte_buf[i*Cbytes]),
+      ////       &(data[((long)index_p[i]-1) * Cbytes]),
+      ////       Cbytes); 
+    ////}  
     for(fi=0; fi<length(field); fi++) {
       v = INTEGER(field)[fi]-1;
       offset = MMAP_OFFSET(mmap_obj,v);
@@ -715,11 +715,13 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             case sizeof(char):
             if(fieldSigned) {   /* 1 byte char */
             for(ii=0; ii<LEN; ii++) {
-              int_vec_dat[ii] = (int)(char)(byte_buf[ii*Cbytes+offset]);;
+              //int_vec_dat[ii] = (int)(char)(byte_buf[ii*Cbytes+offset]);;
+              int_vec_dat[ii] = (int)(char)(data[((long)index_p[ii]-1) * Cbytes + offset]);
             }
             } else {            /* 1 byte unsigned char */
             for(ii=0; ii<LEN; ii++) {
-              int_vec_dat[ii] = (int)(unsigned char)(byte_buf[ii*Cbytes+offset]);;
+              //int_vec_dat[ii] = (int)(unsigned char)(byte_buf[ii*Cbytes+offset]);;
+              int_vec_dat[ii] = (int)(unsigned char)(data[((long)index_p[ii]-1) * Cbytes + offset]);
             }
             }
             break;
@@ -734,7 +736,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             } else {            /* 2 byte unsigned short */
             for(ii=0; ii<LEN; ii++) {
               memcpy(&sbuf, 
-                     &(byte_buf[ii*Cbytes+offset]),
+                     //&(byte_buf[ii*Cbytes+offset]),
+                     &(data[((long)index_p[ii]-1) * Cbytes + offset]),
                      sizeof(char)*sizeof(short));
               int_vec_dat[ii] = (int)(unsigned short)sbuf;
             }
@@ -744,9 +747,11 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             case sizeof( three_byte_int )
             */
             case sizeof(int): /* 4 byte */
+Rprintf("inside of 4 byte...\n");
             for(ii=0; ii<LEN; ii++) {
               memcpy(&intbuf, 
-                     &(byte_buf[ii*Cbytes+offset]),
+                     &(data[((long)index_p[ii]-1) * Cbytes+offset]),
+                     //&(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(int));
               int_vec_dat[ii] = intbuf;
             }
@@ -762,7 +767,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             case sizeof(float): /* 4 byte */
             for(ii=0; ii<LEN; ii++) {
               memcpy(&floatbuf, 
-                     &(byte_buf[ii*Cbytes+offset]),
+                     //&(byte_buf[ii*Cbytes+offset]),
+                     &(data[((long)index_p[ii]-1) * Cbytes + offset]),
                      sizeof(char)*sizeof(float));
               real_vec_dat[ii] = (double)floatbuf;
             }
@@ -773,14 +779,16 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
               /* casting from int64 to R double to minimize precision loss */
               for(ii=0;  ii < LEN; ii++) {
                 memcpy(&longbuf, 
-                       &(byte_buf[ii*Cbytes+offset]),
+                       //&(byte_buf[ii*Cbytes+offset]),
+                       &(data[((long)index_p[ii]-1) * Cbytes + offset]),
                        sizeof(char)*sizeof(long));
                 real_vec_dat[ii] = (double)longbuf;
               }
             } else {
             for(ii=0; ii<LEN; ii++) {
               memcpy(&realbuf, 
-                     &(byte_buf[ii*Cbytes+offset]),
+                     //&(byte_buf[ii*Cbytes+offset]),
+                     &(data[((long)index_p[ii]-1) * Cbytes + offset]),
                      sizeof(char)*sizeof(double));
               real_vec_dat[ii] = (double)realbuf;
             }
@@ -794,7 +802,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           complex_vec_dat = COMPLEX(vec_dat);
           for(ii=0; ii<LEN; ii++) {
             memcpy(&Rcomplexbuf, 
-                   &(byte_buf[ii*Cbytes+offset]),
+                   //&(byte_buf[ii*Cbytes+offset]),
+                   &(data[((long)index_p[ii]-1) * Cbytes + offset]),
                    sizeof(char)*sizeof(Rcomplex));
             complex_vec_dat[ii] = Rcomplexbuf;
           }
@@ -805,7 +814,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           PROTECT(vec_dat = allocVector(RAWSXP, LEN));
           raw_vec_dat = RAW(vec_dat);
           for(ii=0; ii<LEN; ii++) {
-            raw_vec_dat[ii] = (Rbyte)(byte_buf[ii*Cbytes+offset]);;
+            //raw_vec_dat[ii] = (Rbyte)(byte_buf[ii*Cbytes+offset]);;
+            raw_vec_dat[ii] = (Rbyte)(data[((long)index_p[ii]-1) * Cbytes + offset]);
           }
           SET_VECTOR_ELT(dat, fi, vec_dat);
           UNPROTECT(1);
@@ -816,7 +826,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           PROTECT(vec_dat = allocVector(STRSXP, LEN));
           if(hasnul) {
             for(ii=0; ii < LEN; ii++) {
-              str = (char *)&(byte_buf[ii*Cbytes+offset]);
+              //str = (char *)&(byte_buf[ii*Cbytes+offset]);
+              str = (char *)&( data[((long)index_p[ii]-1) * Cbytes + offset]);
               SET_STRING_ELT(vec_dat, ii,
                 mkChar( (const char *)str));
                 //mkCharLenCE((const char *)&(byte_buf[ii*Cbytes+offset]),
@@ -824,7 +835,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             }
           } else {  /* nul-padded char array */
             for(ii=0; ii < LEN; ii++) {
-              str = (char *)&(byte_buf[ii*Cbytes+offset]);
+              //str = (char *)&(byte_buf[ii*Cbytes+offset]);
+              str = (char *)&(data[((long)index_p[ii]-1) * Cbytes + offset]);
               SET_STRING_ELT(vec_dat, ii,
                 mkCharLenCE((const char *)&(byte_buf[ii*Cbytes+offset]),
                       //    fieldCbytes, CE_NATIVE));
