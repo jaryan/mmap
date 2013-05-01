@@ -747,7 +747,6 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             case sizeof( three_byte_int )
             */
             case sizeof(int): /* 4 byte */
-Rprintf("inside of 4 byte...\n");
             for(ii=0; ii<LEN; ii++) {
               memcpy(&intbuf, 
                      &(data[((long)index_p[ii]-1) * Cbytes+offset]),
@@ -838,7 +837,7 @@ Rprintf("inside of 4 byte...\n");
               //str = (char *)&(byte_buf[ii*Cbytes+offset]);
               str = (char *)&(data[((long)index_p[ii]-1) * Cbytes + offset]);
               SET_STRING_ELT(vec_dat, ii,
-                mkCharLenCE((const char *)&(byte_buf[ii*Cbytes+offset]),
+                mkCharLenCE((const char *)&(data[((long)index_p[ii]-1) * Cbytes + offset]), //byte_buf[ii*Cbytes+offset]),
                       //    fieldCbytes, CE_NATIVE));
                       (strlen(str) > fieldCbytes ? fieldCbytes : strlen(str)), CE_NATIVE));
             }
