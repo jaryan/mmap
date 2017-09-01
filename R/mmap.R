@@ -98,7 +98,7 @@ mmapFlags <- function(...) {
     flags <- gsub(" ","",unlist(strsplit(flags,"\\|")))
     flags <- gsub('\"',"",flags) # in case "" | ""
   }
-  .Call("mmap_mkFlags", flags, PKG="mmap")
+  .Call("mmap_mkFlags", flags, PACKAGE="mmap")
 }
 
 # S3 constructor
@@ -125,7 +125,7 @@ mmap <- function(file, mode=int32(),
                       as.double(len),
                       as.integer(off),
                       as.integer(pageoff),
-                      PKG="mmap")
+                      PACKAGE="mmap")
     reg.finalizer(mmap_obj, mmap_finalizer, TRUE)
     mmap_obj$filedesc <- structure(mmap_obj$filedesc, .Names=file)
     mmap_obj$extractFUN <- extractFUN
@@ -138,18 +138,18 @@ mmap <- function(file, mode=int32(),
 munmap <- function(x) {
   if(!is.mmap(x))
     stop("mmap object required to munmap")
-  invisible(.Call("mmap_munmap", x, PKG="mmap"))
+  invisible(.Call("mmap_munmap", x, PACKAGE="mmap"))
 }
 
 mmap_finalizer <- function(x) {
   if(is.mmap(x))
-    invisible(.Call("mmap_munmap", x, PKG="mmap"))
+    invisible(.Call("mmap_munmap", x, PACKAGE="mmap"))
 }
 
 msync <- function(x, flags=mmapFlags("MS_ASYNC")) {
   if(!is.mmap(x))
     stop("mmap object required to munmap")
-  .Call("mmap_msync", x, as.integer(flags), PKG="mmap")
+  .Call("mmap_msync", x, as.integer(flags), PACKAGE="mmap")
 }
 
 mprotect <- function(x, i, prot) {
@@ -157,11 +157,11 @@ mprotect <- function(x, i, prot) {
 
   # TODO: add ability to protect multiple pages in a
   # range
-  .Call("mmap_mprotect", x, i, prot, PKG="mmap")
+  .Call("mmap_mprotect", x, i, prot, PACKAGE="mmap")
 }
 
 is.mmap <- function(x) {
-  inherits(x, "mmap") && .Call("mmap_is_mmapped",x,PKG="mmap")
+  inherits(x, "mmap") && .Call("mmap_is_mmapped",x,PACKAGE="mmap")
 }
 
 `[.mmap` <- function(x, i, j, ...) {
@@ -184,7 +184,7 @@ is.mmap <- function(x) {
     j <- 1L
   }
   j <- j[j>0] # only positive values
-  xx <- .Call("mmap_extract", i, as.integer(j), DIM, x, PKG="mmap")
+  xx <- .Call("mmap_extract", i, as.integer(j), DIM, x, PACKAGE="mmap")
   names(xx) <- names(x$storage.mode)[j]
   if(is.null(extractFUN(x))) {
     xx
@@ -222,7 +222,7 @@ is.mmap <- function(x) {
 # likely we need to check for list()/struct to correctly handle in C
   if(max(i) > length(x) || min(i) < 0)
     stop("improper 'i' range")
-  .Call("mmap_replace", i, j, value, x, PKG="mmap") 
+  .Call("mmap_replace", i, j, value, x, PACKAGE="mmap") 
   if(sync)
     msync(x)
   x

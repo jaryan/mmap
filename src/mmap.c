@@ -10,6 +10,7 @@
 #include "mmap.h"
 
 #ifndef WIN32
+#include "config.h"
 #ifdef HAVE_MMAP
 #  include <sys/mman.h>
 #endif
@@ -62,10 +63,10 @@ int bitmask[32];
 int nbitmask[32];
 
 void create_bitmask (void){
-  int i;
+  unsigned int i;
   /* little-endian for now */
   for(i=0; i<32; i++) {
-     bitmask[i] = 1 << i;
+     bitmask[i] = 1u << i;
     nbitmask[i] = ~bitmask[i];
   }
 }
@@ -153,8 +154,8 @@ SEXP mmap_mkFlags (SEXP _flags) {
 SEXP mmap_munmap (SEXP mmap_obj) {
   int ret;
   char *data = MMAP_DATA(mmap_obj);
-  HANDLE fd = (HANDLE)MMAP_FD(mmap_obj);
-  HANDLE mh = (HANDLE)MMAP_HANDLE(mmap_obj);
+  HANDLE fd = (HANDLE)(size_t)MMAP_FD(mmap_obj);
+  HANDLE mh = (HANDLE)(size_t)MMAP_HANDLE(mmap_obj);
 
   if(data == NULL)
     error("invalid mmap pointer");
@@ -162,7 +163,7 @@ SEXP mmap_munmap (SEXP mmap_obj) {
   ret = UnmapViewOfFile(data);
   CloseHandle(mh);
   CloseHandle(fd);
-  R_ClearExternalPtr(findVar(install("data"),mmap_obj));
+  R_ClearExternalPtr(findVar(mmap_dataSymbol,mmap_obj));
   return(ScalarInteger(ret));
 }
 #else
@@ -176,7 +177,7 @@ SEXP mmap_munmap (SEXP mmap_obj) {
   int ret = munmap(data, MMAP_SIZE(mmap_obj));
   close(fd); /* should be moved back to R */
   //R_ClearExternalPtr(VECTOR_ELT(mmap_obj,0));
-  R_ClearExternalPtr(findVar(install("data"),mmap_obj));
+  R_ClearExternalPtr(findVar(mmap_dataSymbol,mmap_obj));
   /*R_ClearExternalPtr(MMAP_DATA(mmap_obj));*/
   return(ScalarInteger(ret)); 
 } /*}}}*/
@@ -217,14 +218,16 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   SET_ENCLOS(mmap_obj, R_NilValue);
   SET_HASHTAB(mmap_obj, R_NilValue);
   SET_ATTRIB(mmap_obj, R_NilValue);
-  defineVar(install("data"), R_MakeExternalPtr(data, R_NilValue, R_NilValue),mmap_obj);
+  defineVar(mmap_dataSymbol, R_MakeExternalPtr(data, R_NilValue, R_NilValue),mmap_obj);
   //defineVar(install("bytes"), ScalarReal(asReal(_len)-asInteger(_off)-asInteger(_pageoff)),mmap_obj);
-  defineVar(install("bytes"), _len,mmap_obj);
-  defineVar(install("filedesc"), ScalarInteger((int)hFile),mmap_obj);
-  defineVar(install("storage.mode"), _type,mmap_obj);
-  defineVar(install("pagesize"), ScalarReal((double)sSysInfo.dwPageSize),mmap_obj);
-  defineVar(install("handle"), ScalarInteger((int)hMap),mmap_obj);
-  defineVar(install("dim"), R_NilValue ,mmap_obj);
+  defineVar(mmap_bytesSymbol, _len,mmap_obj);
+  defineVar(mmap_filedescSymbol, ScalarInteger((size_t)hFile),mmap_obj);
+  defineVar(mmap_storageModeSymbol, _type,mmap_obj);
+  defineVar(mmap_pagesizeSymbol, ScalarReal((double)sSysInfo.dwPageSize),mmap_obj);
+  defineVar(mmap_handleSymbol, ScalarInteger((size_t)hMap),mmap_obj);
+  defineVar(mmap_dimSymbol, R_NilValue, mmap_obj);
+  defineVar(mmap_protSymbol, _prot, mmap_obj);
+  defineVar(mmap_flagsSymbol, _flags, mmap_obj);
   UNPROTECT(1);
   return(mmap_obj);
 }
@@ -236,9 +239,9 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   struct stat st;
 
   stat(CHAR(STRING_ELT(_fildesc,0)), &st);
-  fd = open(CHAR(STRING_ELT(_fildesc,0)), O_RDWR);
+  fd = open(CHAR(STRING_ELT(_fildesc,0)), INTEGER(_prot)[0] == PROT_READ ? O_RDONLY : O_RDWR);
   if(fd < 0)
-    error("unable to open file");
+    error("unable to open file: possible permission issue.");
   data = mmap((caddr_t)0, 
               (size_t)REAL(_len)[0], 
               INTEGER(_prot)[0], 
@@ -256,13 +259,15 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   SET_ENCLOS(mmap_obj, R_NilValue);
   SET_HASHTAB(mmap_obj, R_NilValue);
   SET_ATTRIB(mmap_obj, R_NilValue);
-  defineVar(install("data"), R_MakeExternalPtr(data, R_NilValue, R_NilValue),mmap_obj);
+  defineVar(mmap_dataSymbol, R_MakeExternalPtr(data, R_NilValue, R_NilValue),mmap_obj);
   //defineVar(install("bytes"), ScalarReal(asReal(_len)-asInteger(_off)-asInteger(_pageoff)),mmap_obj);
-  defineVar(install("bytes"), _len,mmap_obj);
-  defineVar(install("filedesc"), ScalarInteger(fd),mmap_obj);
-  defineVar(install("storage.mode"), _type,mmap_obj);
-  defineVar(install("pagesize"), ScalarReal((double)sysconf(_SC_PAGE_SIZE)),mmap_obj);
-  defineVar(install("dim"), R_NilValue ,mmap_obj);
+  defineVar(mmap_bytesSymbol, _len,mmap_obj);
+  defineVar(mmap_filedescSymbol, ScalarInteger(fd),mmap_obj);
+  defineVar(mmap_storageModeSymbol, _type,mmap_obj);
+  defineVar(mmap_pagesizeSymbol, ScalarReal((double)sysconf(_SC_PAGE_SIZE)),mmap_obj);
+  defineVar(mmap_dimSymbol, R_NilValue ,mmap_obj);
+  defineVar(mmap_protSymbol,  _prot,  mmap_obj);
+  defineVar(mmap_flagsSymbol, _flags, mmap_obj);
   UNPROTECT(1);
   return(mmap_obj);
 } /*}}}*/
@@ -312,9 +317,9 @@ SEXP mmap_msync (SEXP mmap_obj, SEXP _flags) {
 SEXP mmap_madvise (SEXP mmap_obj, SEXP _len, SEXP _flags) {
   /* function needs to allow for data to be an offset, else
      we can't control anything of value... */
+#ifdef HAVE_MADVISE
   char *data;
   data = MMAP_DATA(mmap_obj);
-#ifdef HAVE_MADVISE
   int ret = madvise(data, INTEGER(_len)[0], INTEGER(_flags)[0]);
 #else
   int ret = -1;
@@ -324,15 +329,18 @@ SEXP mmap_madvise (SEXP mmap_obj, SEXP _len, SEXP _flags) {
 
 /* {{{ mmap_mprotect */
 SEXP mmap_mprotect (SEXP mmap_obj, SEXP index, SEXP prot) {
-  int i, LEN;
-  size_t ival, upper_bound;
-  char *data, *addr;
+  int i, LEN, ival;
+  size_t upper_bound;
+#ifndef WIN32
+  char *data;
+  char *addr;
 
   data = MMAP_DATA(mmap_obj);
+  int pagesize = MMAP_PAGESIZE(mmap_obj);
+#endif
   LEN = length(index);
 
   SEXP ret; PROTECT(ret = allocVector(INTSXP, LEN));
-  int pagesize = MMAP_PAGESIZE(mmap_obj);
   
   upper_bound = (MMAP_SIZE(mmap_obj)-sizeof(int));
   for(i=0;i<LEN;i++) {
@@ -341,8 +349,12 @@ SEXP mmap_mprotect (SEXP mmap_obj, SEXP index, SEXP prot) {
       error("'i=%i' out of bounds", i);
     
 /* Rprintf("offset: %i\n",(ival/pagesize)*pagesize); */
+#ifdef WIN32
+    INTEGER(ret)[i] = -1;
+#else
     addr = &(data[(int)((ival/pagesize)*pagesize)]);
     INTEGER(ret)[i] = mprotect(addr, ((ival/pagesize)*pagesize)*2, INTEGER(prot)[0]);
+#endif
   }
   UNPROTECT(1);
   return ret;
@@ -378,8 +390,10 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
   double realbuf;
   Rcomplex Rcomplexbuf; 
 
+  /*
   unsigned char *byte_buf;
   SEXP byteBuf;
+  */
   int *int_dat;
   int *lgl_dat;
   double *real_dat;
@@ -636,8 +650,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
   case STRSXP: /* {{{ */
     /* see https://svn.r-project.org/R/trunk/src/main/raw.c */
     /* fixed width character support */
-    if( !isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul"))))
-      hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")));
+    if( !isNull(getAttrib(MMAP_SMODE(mmap_obj),nul_Symbol)))
+      hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),nul_Symbol));
     if(hasnul) { 
       for(i=0; i < LEN; i++) {
         str = (char *)(&(data[((long)index_p[i]-1)*Cbytes]));
@@ -703,10 +717,12 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
     for(fi=0; fi<length(field); fi++) {
       v = INTEGER(field)[fi]-1;
       offset = MMAP_OFFSET(mmap_obj,v);
-      fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
-                                      v),install("bytes")))[0];
-      fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
-                                      v),install("signed")))[0];
+      fieldCbytes = MMAP_CBYTES(mmap_obj);
+      //fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
+      //                                v),install("bytes")))[0];
+      fieldSigned = MMAP_SIGNED(mmap_obj);
+      //fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
+      //                                v),install("signed")))[0];
       switch(TYPEOF(VECTOR_ELT(MMAP_SMODE(mmap_obj), v))) {
         case INTSXP:
           PROTECT(vec_dat = allocVector(INTSXP, LEN)); 
@@ -821,7 +837,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           break;
         case STRSXP:
           hasnul = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
-                                      v),install("nul")))[0];
+                                      v),nul_Symbol))[0];
           PROTECT(vec_dat = allocVector(STRSXP, LEN));
           if(hasnul) {
             for(ii=0; ii < LEN; ii++) {
@@ -864,13 +880,18 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
 /* mmap_replace {{{ */
 SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
 /*  int i, upper_bound, ival; */
-  int i;
-  size_t upper_bound, ival;
+  int i, ival;
+  size_t upper_bound; //, ival;
   int v, fi, offset, fieldCbytes, fieldSigned;
   char *data;
   int LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);
   int Cbytes = MMAP_CBYTES(mmap_obj);
+  int prot = asInteger(MMAP_PROT(mmap_obj));
+  int flags = asInteger(MMAP_FLAGS(mmap_obj));
+/*Rprintf("prot: %i, flags: %i\n", prot, flags);*/
+  if(prot == PROT_READ && flags != MAP_PRIVATE)
+    error("object was opened with PROT_READ and is not writable");
   //int hasnul = 1;
   /*int isSigned = MMAP_SIGNED(mmap_obj);*/
   int P=0;
@@ -1017,10 +1038,12 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
     for(fi=0; fi<length(field); fi++) {
       v = INTEGER(field)[fi]-1;
       offset = MMAP_OFFSET(mmap_obj, v);  /* byte offset of column */
-      fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),
-                                      install("bytes")))[0];
-      fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),
-                                      install("signed")))[0];
+      fieldCbytes = MMAP_CBYTES(mmap_obj);
+      //fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),
+      //                                install("bytes")))[0];
+      fieldSigned = MMAP_SIGNED(mmap_obj);
+      //fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),
+      //                                install("signed")))[0];
       switch(TYPEOF(VECTOR_ELT(MMAP_SMODE(mmap_obj),v))) {
         case INTSXP:
           LEN = length(VECTOR_ELT(value,fi));
@@ -1130,8 +1153,8 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
     } /* VECSXP }}} */
     break;
   case STRSXP:
-    if( !isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul"))) &&
-        asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")))) {
+    if( !isNull(getAttrib(MMAP_SMODE(mmap_obj),nul_Symbol)) &&
+        asLogical(getAttrib(MMAP_SMODE(mmap_obj),nul_Symbol))) {
       for(i=0; i < LEN; i++) {
         memset(&(data[((long)index_p[i]-1)*Cbytes]), '\0', Cbytes);
         memcpy(&(data[((long)index_p[i]-1)*Cbytes]), CHAR(STRING_ELT(value,i)), Cbytes-1);
@@ -1509,102 +1532,114 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
       if(isSigned) {
       if(cmp_how==1) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int24_buf, 
+          intbuf = 0;
+          memcpy(&intbuf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if((int)*((int *)(void *)&int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
-            memcpy(uint24_buf, 
+          if(intbuf > 8388607) {
+            intbuf = -1;
+            memcpy(&intbuf, 
                    &(data[i*3]), /* copy first 3 bytes */
                    3);
-            if(cmp_to_int == *((int *)(void *)&uint24_buf))
+            if(cmp_to_int == intbuf)
               int_result[hits++] = i+1;
           } else {
-            if(cmp_to_int == *((int *)(void *)&int24_buf)) 
+            if(cmp_to_int == intbuf)
               int_result[hits++] = i+1;
           }
         }
       } else
       if(cmp_how==2) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int24_buf, 
+          intbuf = 0;
+          memcpy(&intbuf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(*((int *)(void *)&int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
-            memcpy(uint24_buf, 
+          if(intbuf > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+            intbuf = -1;
+            memcpy(&intbuf, 
                    &(data[i*3]), /* copy first 3 bytes */
                    3);
-            if(cmp_to_int != *((int *)(void *)&uint24_buf)) 
+            if(cmp_to_int != intbuf)
               int_result[hits++] = i+1;
           } else {
-            if(cmp_to_int != *((int *)(void *)&int24_buf)) 
+            if(cmp_to_int != intbuf)
               int_result[hits++] = i+1;
           }
         }
       } else
       if(cmp_how==3) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int24_buf, 
+          intbuf = 0;
+          memcpy(&intbuf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(*((int *)(void *)&int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
-            memcpy(uint24_buf, 
+          if(intbuf > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+            intbuf = -1;
+            memcpy(&intbuf, 
                    &(data[i*3]), /* copy first 3 bytes */
                    3);
-            if(cmp_to_int <= *((int *)(void *)&uint24_buf)) 
+            if(cmp_to_int <= intbuf)
               int_result[hits++] = i+1;
           } else {
-            if(cmp_to_int <= *((int *)(void *)&int24_buf)) 
+            if(cmp_to_int <= intbuf)
               int_result[hits++] = i+1;
           }
         }
       } else
       if(cmp_how==4) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int24_buf, 
+          intbuf = 0;
+          memcpy(&intbuf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(*((int *)(void *)&int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
-            memcpy(uint24_buf, 
+          if(intbuf > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+            intbuf = -1;
+            memcpy(&intbuf, 
                    &(data[i*3]), /* copy first 3 bytes */
                    3);
-            if(cmp_to_int >= *((int *)(void *)&uint24_buf)) 
+            if(cmp_to_int >= intbuf)
               int_result[hits++] = i+1;
           } else {
-            if(cmp_to_int >= *((int *)(void *)&int24_buf)) 
+            if(cmp_to_int >= intbuf)
               int_result[hits++] = i+1;
           }
         }
       } else
       if(cmp_how==5) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int24_buf, 
+          intbuf = 0;
+          memcpy(&intbuf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(*((int *)(void *)&int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
-            memcpy(uint24_buf, 
+          if(intbuf > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+            intbuf = -1;
+            memcpy(&intbuf, 
                    &(data[i*3]), /* copy first 3 bytes */
                    3);
-            if(cmp_to_int < *((int *)(void *)&uint24_buf)) 
+            if(cmp_to_int < intbuf)
               int_result[hits++] = i+1;
           } else {
-            if(cmp_to_int < *((int *)(void *)&int24_buf)) 
+            if(cmp_to_int < intbuf)
               int_result[hits++] = i+1;
           }
         }
       } else
       if(cmp_how==6) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int24_buf, 
+          intbuf = 0;
+          memcpy(&intbuf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(*((int *)(void *)&int24_buf) > 8388607) {  /* MAX 3 byte unsigned INTEGER */
-            memcpy(uint24_buf, 
+          if(intbuf > 8388607) {  /* MAX 3 byte unsigned INTEGER */
+            intbuf = -1;
+            memcpy(&intbuf, 
                    &(data[i*3]), /* copy first 3 bytes */
                    3);
-            if(cmp_to_int > *((int *)(void *)&uint24_buf)) 
+            if(cmp_to_int > intbuf)
               int_result[hits++] = i+1;
           } else {
-            if(cmp_to_int > *((int *)(void *)&int24_buf)) 
+            if(cmp_to_int > intbuf)
               int_result[hits++] = i+1;
           }
         }
@@ -1612,55 +1647,61 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
       } else { /* unsigned 3 byte int */
       if(cmp_how==1) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int24_buf, 
+          intbuf = 0;
+          memcpy(&intbuf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(cmp_to_int == *((int *)(void *)&int24_buf))
+          if(cmp_to_int == intbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==2) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int24_buf, 
+          intbuf = 0;
+          memcpy(&intbuf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(cmp_to_int != *((int *)(void *)&int24_buf))
+          if(cmp_to_int != intbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==3) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int24_buf, 
+          intbuf = 0;
+          memcpy(&intbuf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(cmp_to_int <= *((int *)(void *)&int24_buf))
+          if(cmp_to_int <= intbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==4) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int24_buf, 
+          intbuf = 0;
+          memcpy(&intbuf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(cmp_to_int >= *((int *)(void *)&int24_buf))
+          if(cmp_to_int >= intbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==5) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int24_buf, 
+          intbuf = 0;
+          memcpy(&intbuf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(cmp_to_int <  *((int *)(void *)&int24_buf))
+          if(cmp_to_int <  intbuf)
             int_result[hits++] = i+1;
         }
       } else
       if(cmp_how==6) {
         for(i=0;  i < LEN; i++) {
-          memcpy(int24_buf, 
+          intbuf = 0;
+          memcpy(&intbuf, 
                  &(data[i*3]), /* copy first 3 bytes */
                  3);
-          if(cmp_to_int >  *((int *)(void *)&int24_buf))
+          if(cmp_to_int >  intbuf)
             int_result[hits++] = i+1;
         }
       } /* end of unsigned 3 byte */
@@ -1842,8 +1883,8 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     int str_len;
     char *str_buf = R_alloc(sizeof(char), Cbytes);
     int hasnul = 1;
-    if( !isNull(getAttrib(MMAP_SMODE(mmap_obj), install("nul"))))
-      hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),install("nul")));
+    if( !isNull(getAttrib(MMAP_SMODE(mmap_obj), nul_Symbol)))
+      hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),nul_Symbol));
 
     //if(isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul")))) {
     if(hasnul) {

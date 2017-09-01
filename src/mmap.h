@@ -1,26 +1,42 @@
 #include <R.h>
 #include <Rinternals.h>
-#include "config.h"
+
+
+SEXP  mmap_dataSymbol;
+SEXP  mmap_bytesSymbol;
+SEXP  mmap_filedescSymbol;
+SEXP  mmap_storageModeSymbol;
+SEXP  mmap_signedSymbol;
+SEXP  mmap_offsetSymbol;
+SEXP  mmap_pagesizeSymbol;
+SEXP  mmap_dimSymbol;
+SEXP  mmap_protSymbol;
+SEXP  mmap_flagsSymbol;
+SEXP  mmap_handleSymbol; /* WIN */
+SEXP  nul_Symbol;
+
 
 /*
   new access macros for environment mmap_obj to facilitate finalizer
 */
 
-#define MMAP_DATA(mmap_object)        R_ExternalPtrAddr(findVar(install("data"),mmap_object))
-#define MMAP_SIZE(mmap_object)        (long)REAL(findVar(install("bytes"),mmap_object))[0]
-#define MMAP_FD(mmap_object)          INTEGER(findVar(install("filedesc"),mmap_object))[0]
-#define MMAP_MODE(mmap_object)        TYPEOF(findVar(install("storage.mode"),mmap_object))
-#define MMAP_SMODE(mmap_object)       findVar(install("storage.mode"),mmap_object)
-#define MMAP_CTYPE(mmap_object)       CHAR(STRING_ELT(getAttrib(findVar(install("storage.mode"), \
+#define MMAP_DATA(mmap_object)        R_ExternalPtrAddr(findVar(mmap_dataSymbol,mmap_object))
+#define MMAP_SIZE(mmap_object)        (long)REAL(findVar(mmap_bytesSymbol,mmap_object))[0]
+#define MMAP_FD(mmap_object)          INTEGER(findVar(mmap_filedescSymbol,mmap_object))[0]
+#define MMAP_MODE(mmap_object)        TYPEOF(findVar(mmap_storageModeSymbol,mmap_object))
+#define MMAP_SMODE(mmap_object)       findVar(mmap_storageModeSymbol,mmap_object)
+#define MMAP_CTYPE(mmap_object)       CHAR(STRING_ELT(getAttrib(findVar(mmap_storageModeSymbol, \
                                         mmap_object), R_ClassSymbol),1))
-#define MMAP_CBYTES(mmap_object)      INTEGER(getAttrib(findVar(install("storage.mode"), \
-                                        mmap_object),install("bytes")))[0]
-#define MMAP_SIGNED(mmap_object)      INTEGER(getAttrib(findVar(install("storage.mode"), \
-                                        mmap_object),install("signed")))[0]
-#define MMAP_OFFSET(mmap_object,i)      INTEGER(getAttrib(findVar(install("storage.mode"), \
-                                        mmap_object),install("offset")))[i]
-#define MMAP_PAGESIZE(mmap_object)    INTEGER(findVar(install("pagesize"),mmap_object))[0]
-#define MMAP_DIM(mmap_object)         findVar(install("dim"),mmap_object)
+#define MMAP_CBYTES(mmap_object)      INTEGER(getAttrib(findVar(mmap_storageModeSymbol, \
+                                        mmap_object),mmap_bytesSymbol))[0]
+#define MMAP_SIGNED(mmap_object)      INTEGER(getAttrib(findVar(mmap_storageModeSymbol, \
+                                        mmap_object),mmap_signedSymbol))[0]
+#define MMAP_OFFSET(mmap_object,i)    INTEGER(getAttrib(findVar(mmap_storageModeSymbol, \
+                                        mmap_object),mmap_offsetSymbol))[i]
+#define MMAP_PAGESIZE(mmap_object)    INTEGER(findVar(mmap_pagesizeSymbol,mmap_object))[0]
+#define MMAP_DIM(mmap_object)         findVar(mmap_dimSymbol,mmap_object)
+#define MMAP_PROT(mmap_object)        findVar(mmap_protSymbol,mmap_object)
+#define MMAP_FLAGS(mmap_object)       findVar(mmap_flagsSymbol,mmap_object)
 #define MMAP_SYNC(mmap_object)        INTEGER(VECTOR_ELT(mmap_object,4))[0]
 
 /*
@@ -41,7 +57,7 @@
 
 #ifdef WIN32
 /*#define MMAP_HANDLE(mmap_object)      INTEGER(VECTOR_ELT(mmap_object,5))[0]*/
-#define MMAP_HANDLE(mmap_object)      INTEGER(findVar(install("handle"),mmap_object))[0]
+#define MMAP_HANDLE(mmap_object)      INTEGER(findVar(mmap_handleSymbol,mmap_object))[0]
 /* Definitions from the Linux kernel source 2.6.35.7 */
 #define PROT_READ       0x1             /* page can be read */
 #define PROT_WRITE      0x2             /* page can be written */
@@ -83,7 +99,20 @@
 #define MADV_UNMERGEABLE 13             /* KSM may not merge identical pages */
 #endif
 
-SEXP mmap_unmmap (SEXP mmap_obj);
+SEXP make_bitmask ();
+SEXP mmap_mkFlags (SEXP _flags);
+SEXP mmap_munmap (SEXP mmap_obj);
+SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot, SEXP _flags, SEXP _len, SEXP _off, SEXP _pageoff);
+SEXP mmap_pagesize ();
+SEXP mmap_is_mmapped (SEXP mmap_obj);
+SEXP mmap_msync (SEXP mmap_obj, SEXP _flags);
+SEXP mmap_madvise (SEXP mmap_obj, SEXP _len, SEXP _flags);
+SEXP mmap_mprotect (SEXP mmap_obj, SEXP index, SEXP prot);
+SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj);
+SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj);
+SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj);
+SEXP convert_ij_to_i (SEXP rows, SEXP i, SEXP j);
+SEXP sizeof_Ctypes ();
 
 #ifdef __ICC
 /* ICC has no madvise in standard naming/place 

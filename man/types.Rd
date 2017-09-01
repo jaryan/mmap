@@ -96,7 +96,7 @@ the vitrual type is signed is also contained.
 }
 \references{
 \url{http://en.wikipedia.org/wiki/C_variable_types_and_declarations}
-\url{http://cran.r-project.org/doc/manuals/R-exts.html#Interface-functions-_002eC-and-_002eFortran}
+\url{https://cran.r-project.org/doc/manuals/R-exts.html}
 }
 \author{
 Jeffrey A. Ryan

@@ -96,7 +96,7 @@ hardware word size (size_t) and is more complicated than the above example.
 }
 \references{
 \url{http://en.wikipedia.org/wiki/Struct_(C_programming_language)}
-\url{http://http://en.wikipedia.org/wiki/Data_structure_alignment}
+\url{http://en.wikipedia.org/wiki/Data_structure_alignment}
 }
 \author{
 Jeffrey A. Ryan
