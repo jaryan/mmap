@@ -717,12 +717,10 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
     for(fi=0; fi<length(field); fi++) {
       v = INTEGER(field)[fi]-1;
       offset = MMAP_OFFSET(mmap_obj,v);
-      fieldCbytes = MMAP_CBYTES(mmap_obj);
-      //fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
-      //                                v),install("bytes")))[0];
-      fieldSigned = MMAP_SIGNED(mmap_obj);
-      //fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
-      //                                v),install("signed")))[0];
+      fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
+                                      v),mmap_bytesSymbol))[0];
+      fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),
+                                      v),mmap_signedSymbol))[0];
       switch(TYPEOF(VECTOR_ELT(MMAP_SMODE(mmap_obj), v))) {
         case INTSXP:
           PROTECT(vec_dat = allocVector(INTSXP, LEN)); 
@@ -1038,12 +1036,10 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
     for(fi=0; fi<length(field); fi++) {
       v = INTEGER(field)[fi]-1;
       offset = MMAP_OFFSET(mmap_obj, v);  /* byte offset of column */
-      fieldCbytes = MMAP_CBYTES(mmap_obj);
-      //fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),
-      //                                install("bytes")))[0];
-      fieldSigned = MMAP_SIGNED(mmap_obj);
-      //fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),
-      //                                install("signed")))[0];
+      fieldCbytes = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),
+                                      mmap_bytesSymbol))[0];
+      fieldSigned = INTEGER(getAttrib(VECTOR_ELT(MMAP_SMODE(mmap_obj),v),
+                                      mmap_signedSymbol))[0];
       switch(TYPEOF(VECTOR_ELT(MMAP_SMODE(mmap_obj),v))) {
         case INTSXP:
           LEN = length(VECTOR_ELT(value,fi));
