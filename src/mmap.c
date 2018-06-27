@@ -193,7 +193,7 @@ void mmap_finalizer (SEXP mmap_obj) {
 /* mmap_mmap AND mmap_finalizer {{{ */
 #ifdef WIN32
 SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
-                SEXP _flags, SEXP _len, SEXP _off, SEXP _pageoff) {
+                SEXP _flags, SEXP _len, SEXP _off, SEXP _pageoff, SEXP _endian) {
   char *data;
   struct stat st;
   SYSTEM_INFO sSysInfo;
@@ -221,6 +221,7 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   defineVar(mmap_dataSymbol, R_MakeExternalPtr(data, R_NilValue, R_NilValue),mmap_obj);
   //defineVar(install("bytes"), ScalarReal(asReal(_len)-asInteger(_off)-asInteger(_pageoff)),mmap_obj);
   defineVar(mmap_bytesSymbol, _len,mmap_obj);
+  defineVar(mmap_endianSymbol, _endian,mmap_obj);
   defineVar(mmap_filedescSymbol, ScalarInteger((size_t)hFile),mmap_obj);
   defineVar(mmap_storageModeSymbol, _type,mmap_obj);
   defineVar(mmap_pagesizeSymbol, ScalarReal((double)sSysInfo.dwPageSize),mmap_obj);
@@ -233,7 +234,7 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
 }
 #else
 SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
-                SEXP _flags, SEXP _len, SEXP _off, SEXP _pageoff) {
+                SEXP _flags, SEXP _len, SEXP _off, SEXP _pageoff, SEXP _endian) {
   int fd;
   char *data;
   struct stat st;
@@ -262,6 +263,7 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   defineVar(mmap_dataSymbol, R_MakeExternalPtr(data, R_NilValue, R_NilValue),mmap_obj);
   //defineVar(install("bytes"), ScalarReal(asReal(_len)-asInteger(_off)-asInteger(_pageoff)),mmap_obj);
   defineVar(mmap_bytesSymbol, _len,mmap_obj);
+  defineVar(mmap_endianSymbol, _endian,mmap_obj);
   defineVar(mmap_filedescSymbol, ScalarInteger(fd),mmap_obj);
   defineVar(mmap_storageModeSymbol, _type,mmap_obj);
   defineVar(mmap_pagesizeSymbol, ScalarReal((double)sysconf(_SC_PAGE_SIZE)),mmap_obj);
@@ -381,6 +383,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
   int mode = MMAP_MODE(mmap_obj);
   int Cbytes = MMAP_CBYTES(mmap_obj);
   int isSigned = MMAP_SIGNED(mmap_obj);
+  int endian = MMAP_ENDIAN(mmap_obj);
 
   /* types to hold memcpy of raw bytes to avoid punning */
   short sbuf;
@@ -514,6 +517,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                  &(data[((long)index_p[i]-1)*sizeof(short)]),
                  sizeof(char)*sizeof(short));
           int_dat[i] = (int)sbuf;
+          if(endian == 2)
+            int_dat[i] = mmap_rev_int(int_dat[i], 2);
         }
         } else {
         for(i=0;  i < LEN; i++) {
@@ -528,6 +533,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                  &(data[((long)index_p[i]-1)*sizeof(short)]),
                  sizeof(char)*sizeof(short));
           int_dat[i] = (int)(unsigned short)sbuf;
+          if(endian == 2)
+            int_dat[i] = mmap_rev_int(int_dat[i], 2);
         }  
         }
         break;
@@ -584,6 +591,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                  &(data[((long)index_p[i]-1)*sizeof(int)]),
                  sizeof(char)*sizeof(int));
           int_dat[i] = intbuf;
+          if(endian == 2)
+            int_dat[i] = mmap_rev_int(int_dat[i], 4);
         }
         break;
       default:
@@ -603,7 +612,11 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           memcpy(&floatbuf, 
                  &(data[((long)index_p[i]-1)*sizeof(float)]), 
                  sizeof(char)*sizeof(float));
-          real_dat[i] = (double)floatbuf;
+          if(endian == 1) {
+            real_dat[i] = (double)floatbuf;
+          } else {
+            real_dat[i] = (double)(mmap_rev_float(floatbuf, 4));
+          }
         }
         break;
       case 8: /* 8 byte double or (double)int64 */
@@ -617,6 +630,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                    &(data[((long)index_p[i]-1)*sizeof(long)]), 
                    sizeof(char)*sizeof(long));
             real_dat[i] = (double)longbuf;
+            if(endian == 2)
+              real_dat[i] = mmap_rev_double(real_dat[i], 8);
           }
         } else {
         for(i=0;  i < LEN; i++) {
@@ -627,6 +642,9 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                  &(data[((long)index_p[i]-1)*sizeof(double)]), 
                  sizeof(char)*sizeof(double));
           real_dat[i] = realbuf;
+          if(endian == 2) {
+            real_dat[i] = mmap_rev_double(real_dat[i], 8);
+          }
         }
         }
         break;
@@ -745,7 +763,11 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
               memcpy(&sbuf, 
                      &(data[((long)index_p[ii]-1) * Cbytes + offset]),
                      sizeof(char)*sizeof(short));
-              int_vec_dat[ii] = (int)sbuf;
+              if(endian == 1) {
+                int_vec_dat[ii] = (int)sbuf;
+              } else {
+                int_vec_dat[ii] = (int)mmap_rev_short(sbuf, 2);
+              }
             }
             } else {            /* 2 byte unsigned short */
             for(ii=0; ii<LEN; ii++) {
@@ -753,7 +775,11 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                      //&(byte_buf[ii*Cbytes+offset]),
                      &(data[((long)index_p[ii]-1) * Cbytes + offset]),
                      sizeof(char)*sizeof(short));
-              int_vec_dat[ii] = (int)(unsigned short)sbuf;
+              if(endian == 1) {
+                int_vec_dat[ii] = (int)(unsigned short)sbuf;
+              } else {
+                int_vec_dat[ii] = (int)(unsigned short)mmap_rev_short(sbuf, 2);
+              }
             }
             }
             break;
@@ -767,6 +793,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                      //&(byte_buf[ii*Cbytes+offset]),
                      sizeof(char)*sizeof(int));
               int_vec_dat[ii] = intbuf;
+              if(endian == 2)
+                int_vec_dat[ii] = mmap_rev_int(int_vec_dat[ii], 4);
             }
             break;
           }
@@ -783,7 +811,11 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                      //&(byte_buf[ii*Cbytes+offset]),
                      &(data[((long)index_p[ii]-1) * Cbytes + offset]),
                      sizeof(char)*sizeof(float));
-              real_vec_dat[ii] = (double)floatbuf;
+              if(endian == 1) {
+                real_vec_dat[ii] = (double)floatbuf;
+              } else {
+                real_vec_dat[ii] = (double)(mmap_rev_float(floatbuf, 4));
+              }
             }
             break;
             case sizeof(double): /* 8 byte */
@@ -795,7 +827,11 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                        //&(byte_buf[ii*Cbytes+offset]),
                        &(data[((long)index_p[ii]-1) * Cbytes + offset]),
                        sizeof(char)*sizeof(long));
-                real_vec_dat[ii] = (double)longbuf;
+                if(endian == 1) {
+                  real_vec_dat[ii] = (double)longbuf;
+                } else {
+                  real_vec_dat[ii] = (double)mmap_rev_long(longbuf, 8);
+                }
               }
             } else {
             for(ii=0; ii<LEN; ii++) {
@@ -804,6 +840,8 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
                      &(data[((long)index_p[ii]-1) * Cbytes + offset]),
                      sizeof(char)*sizeof(double));
               real_vec_dat[ii] = (double)realbuf;
+              if(endian == 2)
+                real_vec_dat[ii] = mmap_rev_double(real_vec_dat[ii], 8);
             }
             }
           }
@@ -878,9 +916,9 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
 /* mmap_replace {{{ */
 SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
 /*  int i, upper_bound, ival; */
-  int i, ival;
+  long i, ival;
   size_t upper_bound; //, ival;
-  int v, fi, offset, fieldCbytes, fieldSigned;
+  long v, fi, offset, fieldCbytes, fieldSigned;
   char *data;
   int LEN = length(index);  
   int mode = MMAP_MODE(mmap_obj);

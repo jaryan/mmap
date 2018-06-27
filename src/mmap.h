@@ -4,6 +4,7 @@
 
 SEXP  mmap_dataSymbol;
 SEXP  mmap_bytesSymbol;
+SEXP  mmap_endianSymbol;
 SEXP  mmap_filedescSymbol;
 SEXP  mmap_storageModeSymbol;
 SEXP  mmap_signedSymbol;
@@ -36,6 +37,7 @@ SEXP  nul_Symbol;
 #define MMAP_PAGESIZE(mmap_object)    INTEGER(findVar(mmap_pagesizeSymbol,mmap_object))[0]
 #define MMAP_DIM(mmap_object)         findVar(mmap_dimSymbol,mmap_object)
 #define MMAP_PROT(mmap_object)        findVar(mmap_protSymbol,mmap_object)
+#define MMAP_ENDIAN(mmap_object)      INTEGER(findVar(mmap_endianSymbol,mmap_object))[0]
 #define MMAP_FLAGS(mmap_object)       findVar(mmap_flagsSymbol,mmap_object)
 #define MMAP_SYNC(mmap_object)        INTEGER(VECTOR_ELT(mmap_object,4))[0]
 
@@ -102,7 +104,7 @@ SEXP  nul_Symbol;
 SEXP make_bitmask ();
 SEXP mmap_mkFlags (SEXP _flags);
 SEXP mmap_munmap (SEXP mmap_obj);
-SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot, SEXP _flags, SEXP _len, SEXP _off, SEXP _pageoff);
+SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot, SEXP _flags, SEXP _len, SEXP _off, SEXP _pageoff, SEXP _endian);
 SEXP mmap_pagesize ();
 SEXP mmap_is_mmapped (SEXP mmap_obj);
 SEXP mmap_msync (SEXP mmap_obj, SEXP _flags);
@@ -113,6 +115,13 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj);
 SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj);
 SEXP convert_ij_to_i (SEXP rows, SEXP i, SEXP j);
 SEXP sizeof_Ctypes ();
+
+short mmap_rev_short(const short x, int len);
+int   mmap_rev_int(const int x, int len);
+long  mmap_rev_long(const long x, int len);
+
+float  mmap_rev_float(const float x, int len);
+double mmap_rev_double(const double x, int len);
 
 #ifdef __ICC
 /* ICC has no madvise in standard naming/place 

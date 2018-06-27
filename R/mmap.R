@@ -106,6 +106,7 @@ mmap <- function(file, mode=int32(),
                  extractFUN=NULL, replaceFUN=NULL,
                  prot=mmapFlags("PROT_READ","PROT_WRITE"),
                  flags=mmapFlags("MAP_SHARED"),len,off=0L,
+                 endian=.Platform$endian,
                  ...) {
     if(missing(file))
       stop("'file' must be specified")
@@ -116,6 +117,7 @@ mmap <- function(file, mode=int32(),
     off <- off - pageoff
     if(missing(len))
       len <- file.info(file)$size - off - pageoff
+    endian <- switch(endian, little=1L, big=2L)
     
     mmap_obj <- .Call("mmap_mmap", 
                       as.Ctype(mode),
@@ -125,6 +127,7 @@ mmap <- function(file, mode=int32(),
                       as.double(len),
                       as.integer(off),
                       as.integer(pageoff),
+                      as.integer(endian),
                       PACKAGE="mmap")
     reg.finalizer(mmap_obj, mmap_finalizer, TRUE)
     mmap_obj$filedesc <- structure(mmap_obj$filedesc, .Names=file)

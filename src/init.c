@@ -29,6 +29,7 @@
 static void SymbolShortcuts(void) {
   mmap_dataSymbol = install("data");
   mmap_bytesSymbol = install("bytes");
+  mmap_endianSymbol = install("endian");
   mmap_filedescSymbol = install("filedesc");
   mmap_storageModeSymbol = install("storage.mode");
   mmap_signedSymbol = install("signed");
@@ -46,7 +47,7 @@ R_CallMethodDef callMethods[] = {
   {"make_bitmask",          (DL_FUNC) &make_bitmask,            0},
   {"mmap_mkFlags",          (DL_FUNC) &mmap_mkFlags,            1},
   {"mmap_munmap",           (DL_FUNC) &mmap_munmap,             1},
-  {"mmap_mmap",             (DL_FUNC) &mmap_mmap,               7},
+  {"mmap_mmap",             (DL_FUNC) &mmap_mmap,               8},
   {"mmap_pagesize",         (DL_FUNC) &mmap_pagesize,           0},
   {"mmap_is_mmapped",       (DL_FUNC) &mmap_is_mmapped,         1},
   {"mmap_msync",            (DL_FUNC) &mmap_msync,              2},

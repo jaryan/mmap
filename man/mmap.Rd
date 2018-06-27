@@ -26,7 +26,7 @@ mmap(file, mode = int32(),
      extractFUN=NULL, replaceFUN=NULL,
      prot=mmapFlags("PROT_READ","PROT_WRITE"),
      flags=mmapFlags("MAP_SHARED"),
-     len, off=0L,
+     len, off=0L, endian=.Platform$endian,
      ...)
 
 munmap(x)
@@ -94,6 +94,11 @@ length in bytes of mapping from offset. (EXPERT USE ONLY)
 offset in bytes to start mapping. This \emph{must be} a multiple
 of the system pagesize.  No checking is currently done, nor is there
 any mmap provision to find pagesize automatically. (EXPERT USE ONLY)
+}
+  \item{endian}{
+endianess of data. At present this is \emph{only} applied to \code{int8},\code{int16},
+\code{int32},\code{float},\code{real32},\code{double}, and \code{real64} types for both
+atomic and \code{struct} types. It is applied universally, and not at struct member elements.
 }
   \item{\dots}{
 unused
