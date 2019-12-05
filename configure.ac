@@ -1,4 +1,4 @@
-AC_INIT(mmap, 0.6-13)
+AC_INIT(mmap, 0.6-18)
 
 AC_CONFIG_HEADERS([src/config.h])
 AC_PROG_CC
