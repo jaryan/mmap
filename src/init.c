@@ -19,12 +19,26 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include "mmap.h"
 #include <Rconfig.h>
 #include <Rinternals.h>
 #include <R_ext/Rdynload.h>
 #include <R_ext/libextern.h>
+
+SEXP  mmap_dataSymbol;
+SEXP  mmap_bytesSymbol;
+SEXP  mmap_endianSymbol;
+SEXP  mmap_filedescSymbol;
+SEXP  mmap_storageModeSymbol;
+SEXP  mmap_signedSymbol;
+SEXP  mmap_offsetSymbol;
+SEXP  mmap_pagesizeSymbol;
+SEXP  mmap_dimSymbol;
+SEXP  mmap_protSymbol;
+SEXP  mmap_flagsSymbol;
+SEXP  mmap_handleSymbol; /* WIN */
+SEXP  nul_Symbol;
+
 
 static void SymbolShortcuts(void) {
   mmap_dataSymbol = install("data");

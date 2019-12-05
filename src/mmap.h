@@ -2,19 +2,19 @@
 #include <Rinternals.h>
 
 
-SEXP  mmap_dataSymbol;
-SEXP  mmap_bytesSymbol;
-SEXP  mmap_endianSymbol;
-SEXP  mmap_filedescSymbol;
-SEXP  mmap_storageModeSymbol;
-SEXP  mmap_signedSymbol;
-SEXP  mmap_offsetSymbol;
-SEXP  mmap_pagesizeSymbol;
-SEXP  mmap_dimSymbol;
-SEXP  mmap_protSymbol;
-SEXP  mmap_flagsSymbol;
-SEXP  mmap_handleSymbol; /* WIN */
-SEXP  nul_Symbol;
+extern SEXP  mmap_dataSymbol;
+extern SEXP  mmap_bytesSymbol;
+extern SEXP  mmap_endianSymbol;
+extern SEXP  mmap_filedescSymbol;
+extern SEXP  mmap_storageModeSymbol;
+extern SEXP  mmap_signedSymbol;
+extern SEXP  mmap_offsetSymbol;
+extern SEXP  mmap_pagesizeSymbol;
+extern SEXP  mmap_dimSymbol;
+extern SEXP  mmap_protSymbol;
+extern SEXP  mmap_flagsSymbol;
+extern SEXP  mmap_handleSymbol; /* WIN */
+extern SEXP  nul_Symbol;
 
 
 /*
