@@ -1242,8 +1242,8 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
      on whether the type is signed or unsigned */
   char *int24_buf[4],
        *uint24_buf[4];  
-  memset(int24_buf, 0, 4); // 0
-  memset(uint24_buf, 0xFF, 4);  // -1
+  memset(int24_buf, 0, 4 * sizeof(*int24_buf)); // 0
+  memset(uint24_buf, 0xFF, 4 * sizeof(*uint24_buf));  // -1
 
   long LEN;
   int mode = MMAP_MODE(mmap_obj); 

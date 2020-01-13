@@ -36,4 +36,4 @@ See the appropriate OS man page.
 \author{
 Jeffrey A. Ryan
 }
-\keyword{ ~kwd1 }
+\keyword{ utilities }

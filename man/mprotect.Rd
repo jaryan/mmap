@@ -44,4 +44,4 @@ sharing resource with R.
 \author{
 Jeffrey A. Ryan
 }
-\keyword{ ~kwd1 }
+\keyword{ utilities }
