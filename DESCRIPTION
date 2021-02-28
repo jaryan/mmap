@@ -1,8 +1,8 @@
 Package: mmap
 Type: Package
 Title: Map Pages of Memory
-Version: 0.6-19
-Date: 2020-01-12
+Version: 0.6-20
+Date: 2021-02-2828
 Author: Jeffrey A. Ryan
 LazyLoad: yes
 Maintainer: Jeffrey A. Ryan <jeff.a.ryan@gmail.com>

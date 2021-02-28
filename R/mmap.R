@@ -303,9 +303,9 @@ as.mmap.character <- function(x,
     if(!force)
       stop("requires fixed-width character vector. Use make.fixedwidth first.")
     x <- make.fixedwidth(x)
+    mode <- char(nchar(x[1])) 
   }
-  #if( !identical(mode, char(nchar(x[1])))){
-  writeBin(x, file, size = nbytes)
+  writeBin(x, file)
   mmap(file, as.Ctype(mode))
 }
 
