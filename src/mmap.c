@@ -1229,7 +1229,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
 
 /* {{{ mmap_compare */
 SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
-  int i;
+  long i;
   char *data;
 
   unsigned char charbuf;
@@ -1889,15 +1889,52 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
       error("unknown floating point size");
       break;
     }
-/*
-    for(i=0;  i < LEN; i++) {
-      memcpy(real_buf, &(data[i * sizeof(double)]), sizeof(char) * sizeof(double));
-    }
-*/
     break;
   case RAWSXP:
+    cmp_to_raw = RAW(coerceVector(compare_to,RAWSXP));
     for(i=0;  i < LEN; i++) {
-      warning("unimplemented raw comparisons"); 
+      if(cmp_how==1) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(&charbuf, &(data[i * sizeof(char)]),sizeof(char));
+          if(*cmp_to_raw == charbuf)
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==2) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(&charbuf, &(data[i * sizeof(char)]), sizeof(char));
+          if(*cmp_to_raw != charbuf)
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==3) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(&charbuf, &(data[i * sizeof(char)]), sizeof(char));
+          if(*cmp_to_raw <= charbuf)
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==4) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(&charbuf, &(data[i * sizeof(char)]), sizeof(char));
+          if(*cmp_to_raw >= charbuf)
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==5) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(&charbuf, &(data[i * sizeof(char)]), sizeof(char));
+          if(*cmp_to_raw <  charbuf)
+            int_result[hits++] = i+1;
+        }
+      } else
+      if(cmp_how==6) {
+        for(i=0;  i < LEN; i++) {
+          memcpy(&charbuf, &(data[i * sizeof(char)]), sizeof(char));
+          if(*cmp_to_raw >  charbuf)
+            int_result[hits++] = i+1;
+        }
+      }
     }
     break;
   case STRSXP: /* {{{ */
