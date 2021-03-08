@@ -1190,6 +1190,9 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
     } /* VECSXP }}} */
     break;
   case STRSXP:
+    if( Cbytes == NA_INTEGER ) {
+      error("'cstring' does not support replacement");
+    }
     if( !isNull(getAttrib(MMAP_SMODE(mmap_obj),nul_Symbol)) &&
         asLogical(getAttrib(MMAP_SMODE(mmap_obj),nul_Symbol))) {
       for(i=0; i < LEN; i++) {
