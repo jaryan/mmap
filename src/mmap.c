@@ -671,16 +671,19 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
     if( !isNull(getAttrib(MMAP_SMODE(mmap_obj),nul_Symbol)))
       hasnul = asLogical(getAttrib(MMAP_SMODE(mmap_obj),nul_Symbol));
     if(hasnul) { 
-      for(i=0; i < LEN; i++) {
-        str = (char *)(&(data[((long)index_p[i]-1)*Cbytes]));
-        SET_STRING_ELT(dat, i,
-          mkChar( (const char *)str));
-          //mkChar( (const char *)&(data[((long)index_p[i]-1)*Cbytes]) ));
-          //mkCharLenCE((const char *)&(data[((long)index_p[i]-1)*Cbytes]),
-          //            Cbytes-1, CE_NATIVE));
-          //mkCharLenCE((const char *)&(data[((long)index_p[i]-1)*Cbytes]),
-                      //strlen(&(data[((long)index_p[i]-1)*Cbytes])) /*Cbytes*/, CE_NATIVE));
-          //            (strlen(str) > Cbytes ? Cbytes : strlen(str))-1, CE_NATIVE));
+      if( Cbytes == NA_INTEGER ) {
+        dat = mmap_cstring_extract(mmap_obj, index); 
+      } else {  // fixed-width
+        for(i=0; i < LEN; i++) {
+          str = (char *)(&(data[((long)index_p[i]-1)*Cbytes]));
+          SET_STRING_ELT(dat, i, mkChar( (const char *)str));
+            //mkChar( (const char *)&(data[((long)index_p[i]-1)*Cbytes]) ));
+            //mkCharLenCE((const char *)&(data[((long)index_p[i]-1)*Cbytes]),
+            //            Cbytes-1, CE_NATIVE));
+            //mkCharLenCE((const char *)&(data[((long)index_p[i]-1)*Cbytes]),
+                        //strlen(&(data[((long)index_p[i]-1)*Cbytes])) /*Cbytes*/, CE_NATIVE));
+            //            (strlen(str) > Cbytes ? Cbytes : strlen(str))-1, CE_NATIVE));
+        }
       }
     } else {  /* nul-padded char array */
       for(i=0; i < LEN; i++) {
@@ -1950,6 +1953,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     */
     cmp_len = length(compare_to);
     cmp_to_raw = RAW(compare_to);
+    // TODO: exact cmp_len should be based on str_len not compare_to
     char *str;
     int str_len;
     char *str_buf = R_alloc(sizeof(char), Cbytes);
@@ -1959,28 +1963,15 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
 
     //if(isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul")))) {
     if(hasnul) {
-      for(i=0; i < LEN; i++) {
-        str = &(data[i*Cbytes]);
-        //strncpy(str_buf, str, Cbytes);
-        //str_len = strlen(str_buf);
-        //str_len = (str_len > Cbytes) ? Cbytes : str_len;
-        //Rprintf("strnlen(str,6):%i\n",strnlen(str,6));
-        //if(str_len != cmp_len)
-          //continue;
-        if(memcmp(str,cmp_to_raw,cmp_len)==0)
-          int_result[hits++] = i+1;
+      if( Cbytes == NA_INTEGER ) {
+        result = mmap_cstring_compare(compare_to, compare_how, mmap_obj, &hits); 
+      } else {  // fixed-width
+        for(i=0; i < LEN; i++) {
+          str = &(data[i*Cbytes]);
+          if(memcmp(str,cmp_to_raw,cmp_len)==0)
+            int_result[hits++] = i+1;
+        }
       }
-//      for(i=0; i < LEN; i++) {
-//          //for(b=0; b < Cbytes-1; b++) {
-//          for(b=0; b < cmp_len; b++) {
-//            Rprintf("%c == %c,", cmp_to_raw[b], data[i*Cbytes+b]);
-//            if(cmp_to_raw[b] != data[i*Cbytes + b])
-//              break;
-//          }
-//          Rprintf("\n");
-//          if(b == Cbytes-1)
-//            int_result[hits++] = i+1;
-//      }
     } else {
       for(i=0; i < LEN; i++) {
         str = &(data[i*Cbytes]);

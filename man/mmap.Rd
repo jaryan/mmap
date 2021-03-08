@@ -57,6 +57,7 @@ mode of data on disk. Use one of
 \sQuote{real32()} (float <-> \R double),
 \sQuote{real64()} (\R double),
 \sQuote{cplx()} (\R complex),
+\sQuote{cstring()} (\R variable length character array),
 \sQuote{struct()} (Collection of Ctypes as defined by mmap).
 See the related functions for details.
 }
@@ -131,10 +132,11 @@ as.mmap method will allow \R objects to be automatically
 created as memory-mapped object.  
 This works for most atomic types in R, including
 numeric, complex, and character vectors. A special note
-on character vectors: as the implementation requires
-a constant number of bytes per element, each element
-must be of the same width. See \code{as.mmap.character}
-for more details.
+on character vectors: the implementation supports both
+variable width character vectors (native R) as well as
+fixed width arrays requiring a constant number of bytes per element.
+The current default is to use fixed width, with variable
+width enabled by setting \code{mode=cstring()}. See \code{as.mmap.character} for more details.
 
 Complex data types, such as 2 dimesioned vectors (matrix)
 and data.frames can be supported using appropriate

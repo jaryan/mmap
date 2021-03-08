@@ -1,10 +1,14 @@
 \name{C_types}
 \alias{types}
+\alias{sizeofCtypes}
 \alias{as.Ctype}
 \alias{is.Ctype}
 \alias{bits}
 \alias{logi8}
 \alias{logi32}
+\alias{cstring}
+\alias{cstring.MaxWidth}
+\alias{is.cstring}
 \alias{char}
 \alias{uchar}
 \alias{cplx}
@@ -30,6 +34,7 @@
 \alias{as.int32}
 \alias{as.real32}
 \alias{as.real64}
+\alias{as.cstring}
 \alias{nbytes}
 \title{
 Virtual R Types On Disk.
@@ -55,14 +60,18 @@ int64(length = 0)
 real32(length = 0)
 real64(length = 0)
 cplx(length = 0)
+cstring(length = 0, nul = TRUE)
 
 as.Ctype(x)
 is.Ctype(x)
+
+cstring.MaxWidth()
+sizeofCtypes()
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{length}{
-desired length.
+desired length. Not used when passed to mode= in mmap call.
 }
   \item{x}{
 R object to coerce or test
@@ -86,7 +95,23 @@ functions are used in the internal compiled code to
 handle the conversion.
 
 It is the user's responsibility to ensure that data
-fits within the prescribed types.
+fits within the prescribed types. All fixed-width types support
+extraction, replacement, and boolean Ops (e.g. \code{==}). See below
+for note on \code{cstring} layout.
+
+\code{cstring} reads nul-terminated strings from binary
+C-style arrays. To minimize memory allocation, two additional
+steps are carried out. First, when a memory map
+is initiated, the length (N) of the character array is
+calculated. The calculation of word offsets to facilitate access
+are deferred until the first request \code{[} or a \code{Ops}
+request. This offset calculation requires the creation of
+an internal index made up of short integers, representing
+the length of each character element. On most platforms, this
+is at least 65534 (sizeof(short) - 1 for nul byte), 
+but can be found via \code{cstring.MaxWidth}. 
+This index will consume sizeof(short) * N memory, allocated
+outside of R.
 }
 \value{
 An R typed vector of length \sQuote{length} with a
@@ -166,9 +191,17 @@ int64()  # note it is a double in R, but described as int64
 writeBin(1:10L, tmp, size=8L)
 eight_byte <- mmap(tmp, int64())
 storage.mode(eight_byte[])  # using R doubles to preserve most long values
-eight_byte[5] <- 2^40  # write as a long, a value in R that is double
+eight_byte[5] <- 2^40  # write as a long, a value in R that is double ~2^53 is representable
 eight_byte[5]
 munmap(eight_byte)
+
+cstring()
+cstring.MaxWidth()
+writeBin(c("this","is","a","sentence"), tmp)
+strings <- mmap(tmp, cstring())
+strings[1:2]
+strings[]
+munmap(strings)
 
 unlink(tmp)
 }

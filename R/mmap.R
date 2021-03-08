@@ -133,6 +133,7 @@ mmap <- function(file, mode=int32(),
     mmap_obj$filedesc <- structure(mmap_obj$filedesc, .Names=file)
     mmap_obj$extractFUN <- extractFUN
     mmap_obj$replaceFUN <- replaceFUN
+    mmap_obj$length <- length.mmap(mmap_obj)
     class(mmap_obj) <- "mmap"
     return(mmap_obj)
 }
@@ -169,6 +170,9 @@ is.mmap <- function(x) {
 
 `[.mmap` <- function(x, i, j, ...) {
   if(!x$bytes) stop('no data to extract')
+  if( is.cstring(x$storage.mode) && is.null(x$cstring) ) {
+     x$cstring <- .Call("mmap_cstring_create", x, 10000L, PACKAGE="mmap")
+  }
   if( is.struct(x$storage.mode) || is.null(x$dim)) {
     if(missing(i))
       i <- 1:length(x)
@@ -183,7 +187,7 @@ is.mmap <- function(x) {
     if( missing(j))
       j <- 1:dim(x)[2]
     DIM <- c(length(i),length(j))
-    i <- .Call("convert_ij_to_i", as.double(dim(x)[1]), as.integer(i), as.integer(j))
+    i <- .Call("convert_ij_to_i", as.double(dim(x)[1]), as.integer(i), as.integer(j), PACKAGE="mmap")
     j <- 1L
   }
   j <- j[j>0] # only positive values
@@ -217,7 +221,7 @@ is.mmap <- function(x) {
       j <- 1:dim(x)[2]
     if(is.character(j))
       j <- match(j, names(x$dimnames))
-    i <- .Call("convert_ij_to_i", as.double(dim(x)[1]), as.integer(i), as.integer(j))
+    i <- .Call("convert_ij_to_i", as.double(dim(x)[1]), as.integer(i), as.integer(j), PACKAGE="mmap")
     j <- 1L
     if(length(i) != length(value))
       value <- rep(value, length.out=length(i))
@@ -232,12 +236,21 @@ is.mmap <- function(x) {
 }
 
 length.mmap <- function(x) {
+  if( !is.null(x$length) ) return(x$length)
+
   size_in_bytes <- x$bytes
   size <- attr(x$storage.mode,"bytes")
-  if( class(x$storage.mode)[2] == 'bits')
-    trunc(size_in_bytes/size) * 32L
-  else
-  trunc(size_in_bytes/size)
+  if( is.na(size) && is.cstring(x$storage.mode) ) {
+    cat("calculating cstring length ... ")
+    L <- .Call("mmap_cstring_length",x, PACKAGE="mmap")
+    cat("done.\n")
+  } else {
+    if( class(x$storage.mode)[2] == 'bits')
+      L <- trunc(size_in_bytes/size) * 32L
+    else
+    L <- trunc(size_in_bytes/size)
+  }
+  L
 }
 
 `length<-.mmap` <- function(x, value) {
@@ -299,7 +312,7 @@ as.mmap.complex <- function(x,
 as.mmap.character <- function(x, 
                               mode=char(nchar(x[1])), 
                               file=tempmmap(), force=FALSE, ...) {
-  if( !all(nchar(x) == nchar(x[1]))) {
+  if( !is.cstring(mode) && !all(nchar(x) == nchar(x[1]))) {
     if(!force)
       stop("requires fixed-width character vector. Use make.fixedwidth first.")
     x <- make.fixedwidth(x)
@@ -342,5 +355,5 @@ tempmmap <- function(tmpdir=tempdir()) {
 }
 
 pagesize <- function() {
-  .Call("mmap_pagesize")
+  .Call("mmap_pagesize", PACKAGE="mmap")
 }

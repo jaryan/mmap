@@ -34,6 +34,8 @@ SEXP  mmap_signedSymbol;
 SEXP  mmap_offsetSymbol;
 SEXP  mmap_pagesizeSymbol;
 SEXP  mmap_dimSymbol;
+SEXP  mmap_lengthSymbol;
+SEXP  mmap_cstringSymbol;
 SEXP  mmap_protSymbol;
 SEXP  mmap_flagsSymbol;
 SEXP  mmap_handleSymbol; /* WIN */
@@ -50,6 +52,8 @@ static void SymbolShortcuts(void) {
   mmap_offsetSymbol = install("offset");
   mmap_pagesizeSymbol = install("pagesize");
   mmap_dimSymbol = install("dim");
+  mmap_lengthSymbol = install("length");
+  mmap_cstringSymbol = install("cstring");
   mmap_protSymbol = install("prot");
   mmap_flagsSymbol = install("flags");
   mmap_handleSymbol = install("handle");
@@ -70,6 +74,15 @@ R_CallMethodDef callMethods[] = {
   {"mmap_extract",          (DL_FUNC) &mmap_extract,            4},
   {"mmap_replace",          (DL_FUNC) &mmap_replace,            4},
   {"mmap_compare",          (DL_FUNC) &mmap_compare,            3},
+
+  // cstring
+  {"mmap_cstring_maxwidth", (DL_FUNC) &mmap_cstring_maxwidth,   0},
+  {"mmap_cstring_length",   (DL_FUNC) &mmap_cstring_length,     1},
+  {"mmap_cstring_extract",  (DL_FUNC) &mmap_cstring_extract,    2},
+  {"mmap_cstring_create",   (DL_FUNC) &mmap_cstring_create,     2},
+  {"mmap_cstring_words",    (DL_FUNC) &mmap_cstring_words,      1},
+  {"mmap_cstring_chunks",   (DL_FUNC) &mmap_cstring_chunks,     1},
+
   {"convert_ij_to_i",       (DL_FUNC) &convert_ij_to_i,         3},
   {"sizeof_Ctypes",         (DL_FUNC) &sizeof_Ctypes,           0},
   {NULL,                    NULL,                               0}

@@ -183,12 +183,11 @@ argument of \texttt{scan} and \texttt{readBin}: \texttt{integer()} for integers,
 The \texttt{mmap} package currently supports sixteen fixed-width (byte count) types,
 including 1, 8, and 32 bit logicals; 8, 16, and 24-bit signed and unsigned integers; 32 and 64 
 bit signed integers,
-floating point numbers with 32 and 64-bits, complex numbers (128-bit), fixed-width
+floating point numbers with 32 and 64-bits, complex numbers (128-bit), fixed and variable width
 character strings (nul terminated, as \texttt{writeBin} produces), and single byte char
-types.  Additionally, types may be combined into more complex structures
+types.  Additionally, all types (excluding variable width characters) may be combined into more complex structures
 via the \texttt{struct} type in mmap.  This is analogous to a row-based 
-representation where different types
-are adjacent on disk.
+representation where different types are adjacent on disk.
 This can be thought of as a \texttt{data.frame} or \texttt{list} in R. Note that struct
 mappings are unaware of alignment issues, and will require additional parameters to
 specify the offset (accounting for padding, if any) and true length of the struct (inclusive
@@ -304,6 +303,7 @@ type support in \texttt{mmap}.
     \midrule
     \texttt{char(n)} & character & fixed-width ascii      & n + 1 \\
     \texttt{character(n)} & character & fixed-width ascii      & n + 1 \\
+    \texttt{cstring()} & character & variable-width ascii      & variable \\
     \midrule
     \texttt{struct(...)}  & list      & struct of above types  & variable \\
     \bottomrule
@@ -324,8 +324,10 @@ vectors are mapped with a mode \texttt{char(n)}, where
 \textsl{n} must specify the number of characters
 in each element of the character mapping. A \texttt{nul} byte
 will be automatically assumed to increase the length of
-each string by one. The \texttt{struct} function
-takes any number of \emph{other} valid types from above, and creates a object
+each string by one. 
+Variable width character arrays (akin to C-strings) require no
+length parameter. The \texttt{struct} function
+takes any number of \emph{other} valid fixed width types from above, and creates a object
 of class \textsl{struct}. This allows for collections of disparate
 types to be organized together in row-major relations.
 
@@ -472,7 +474,8 @@ file into memory, multiple processes can make use of the same
 data without requiring additional resources.  Caching, reads, and
 writes are all managed at the system-level, and as such are
 highly optimized.  Parallel computations on multicore architectures
-are simplified through the use of shared data.
+are simplified through the use of shared data - albeit with
+all the risks associated with shared state.
 
 \subsection{Increased Throughput}
 For random access to large data on disk, the underlying
@@ -529,7 +532,7 @@ programming with data easier and more robust.
 
 \begin{table}[hbt!]
   \centering
-  \caption{Typical Valid Ranges By Type}
+  \caption{Typical Valid Ranges By Type (System Dependent)}
   \vspace{5pt}
   \begin{tabular}{lrl}
     \textsl{type} & \textsl{minimum} & \textsl{maximum} \\
