@@ -1254,7 +1254,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
   int isSigned = MMAP_SIGNED(mmap_obj);
 
   SEXP result;
-  LEN = (long)(MMAP_SIZE(mmap_obj)/Cbytes);  /* change to REAL */
+  LEN = (long)MMAP_LENGTH(mmap_obj);
   PROTECT(result = allocVector(INTSXP, LEN));
   int *int_result = INTEGER(result);
 
