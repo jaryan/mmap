@@ -313,7 +313,7 @@ make.fixedwidth <- function(x, width=NA, justify=c("left","right")) {
 
 cstring <- C_cstring <- function(length=0, na.strings="NA") {
   if(na.strings != "NA") {
-    warning("all occurances of the \"NA\" string in file are converted to R NA values. This will be extended in future versions")
+    warning("only na.strings=\"NA\" is supported in the current version")
   }
   structure(character(length), bytes=NA_integer_, signed=0L,
             na.strings=na.strings, class=c("Ctype","cstring"))

@@ -80,7 +80,7 @@ R object to coerce or test
 are characters delimited by a nul byte?
 }
   \item{na.strings}{
-are characters delimited by a nul byte?
+string to convert to \R's NA. See Details for current implementation.
 }
 }
 \details{
