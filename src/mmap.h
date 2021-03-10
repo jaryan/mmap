@@ -124,6 +124,7 @@ SEXP mmap_cstring_chunks (SEXP cstring);
 SEXP mmap_cstring_extract (SEXP mmap_obj, SEXP i);
 SEXP mmap_cstring_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj, int *hits);
 SEXP mmap_cstring_length (SEXP mmap_obj);
+SEXP mmap_cstring_isna (SEXP mmap_obj, SEXP any);
 SEXP mmap_cstring_maxwidth ();
 
 SEXP convert_ij_to_i (SEXP rows, SEXP i, SEXP j);

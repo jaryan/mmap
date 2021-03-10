@@ -79,6 +79,7 @@ R_CallMethodDef callMethods[] = {
   {"mmap_cstring_maxwidth", (DL_FUNC) &mmap_cstring_maxwidth,   0},
   {"mmap_cstring_length",   (DL_FUNC) &mmap_cstring_length,     1},
   {"mmap_cstring_extract",  (DL_FUNC) &mmap_cstring_extract,    2},
+  {"mmap_cstring_isna",     (DL_FUNC) &mmap_cstring_isna,       2},
   {"mmap_cstring_create",   (DL_FUNC) &mmap_cstring_create,     2},
   {"mmap_cstring_words",    (DL_FUNC) &mmap_cstring_words,      1},
   {"mmap_cstring_chunks",   (DL_FUNC) &mmap_cstring_chunks,     1},

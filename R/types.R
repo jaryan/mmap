@@ -311,12 +311,12 @@ make.fixedwidth <- function(x, width=NA, justify=c("left","right")) {
   sprintf(paste(fmt,width,"s",sep=""), x)  # e.g. "%-9s"
 }
 
-cstring <- C_cstring <- function(length=0, nul=TRUE) {
-  if(!isTRUE(nul)) {
-    stop("only nul terminated C strings are implemented")
+cstring <- C_cstring <- function(length=0, na.strings="NA") {
+  if(na.strings != "NA") {
+    warning("all occurances of the \"NA\" string in file are converted to R NA values. This will be extended in future versions")
   }
   structure(character(length), bytes=NA_integer_, signed=0L,
-            nul=nul, class=c("Ctype","cstring"))
+            na.strings=na.strings, class=c("Ctype","cstring"))
 }
 
 as.cstring <- function(x, ...) UseMethod("as.cstring")

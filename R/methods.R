@@ -57,3 +57,18 @@ dimnames.mmap <- function(x) {
 }
 
 is.array.mmap <- function(x) TRUE  # used for NROW/NCOL
+
+is.na.mmap <- function(x) {
+  if(is.cstring(x$storage.mode)) {
+    .Call("mmap_cstring_isna",x,FALSE)
+  } else {
+    stop("is.na only implemented for Ctype cstring")
+  }
+}
+anyNA.mmap <- function(x, recursive=FALSE) {
+  if(is.cstring(x$storage.mode)) {
+    .Call("mmap_cstring_isna",x,TRUE)
+  } else {
+    stop("anyNA only implemented for Ctype cstring")
+  }
+}

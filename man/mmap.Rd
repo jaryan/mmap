@@ -7,6 +7,7 @@
 \alias{replaceFUN<-}
 \alias{is.mmap}
 \alias{as.mmap}
+\alias{is.na.mmap}
 \alias{dim.mmap}
 \alias{dim<-.mmap}
 \alias{dimnames.mmap}

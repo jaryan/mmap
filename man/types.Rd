@@ -60,7 +60,7 @@ int64(length = 0)
 real32(length = 0)
 real64(length = 0)
 cplx(length = 0)
-cstring(length = 0, nul = TRUE)
+cstring(length = 0, na.strings = "NA")
 
 as.Ctype(x)
 is.Ctype(x)
@@ -77,6 +77,9 @@ desired length. Not used when passed to mode= in mmap call.
 R object to coerce or test
 }
   \item{nul}{
+are characters delimited by a nul byte?
+}
+  \item{na.strings}{
 are characters delimited by a nul byte?
 }
 }
@@ -112,6 +115,10 @@ is at least 65534 (sizeof(short) - 1 for nul byte),
 but can be found via \code{cstring.MaxWidth}. 
 This index will consume sizeof(short) * N memory, allocated
 outside of R.
+
+At present \code{na.strings="NA"} is ignored and all occurances
+of the (binary) string \sQuote{NA} are converted to \code{NA_character_} types
+in R. This is also used by the \pkg{mmap} \code{is.na} function.
 }
 \value{
 An R typed vector of length \sQuote{length} with a

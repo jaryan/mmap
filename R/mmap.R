@@ -70,7 +70,7 @@ print.mmap <- function(x, ...) {
     firstN <- x[1][[1]]
   } else {
   firstN <- head(x)
-  firstN <- if(cumsum(nchar(firstN))[length(firstN)] > 20) {
+  firstN <- if(cumsum(nchar(firstN, keepNA=FALSE))[length(firstN)] > 20) {
                 firstN[1:min(3,length(x))]
               } else {
                 firstN
@@ -357,3 +357,4 @@ tempmmap <- function(tmpdir=tempdir()) {
 pagesize <- function() {
   .Call("mmap_pagesize", PACKAGE="mmap")
 }
+

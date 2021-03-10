@@ -124,7 +124,12 @@ SEXP mmap_cstring_extract(SEXP mmap_obj, SEXP index) {
 
     str = (char *)(&(data[(long)total_offset]));
     strncpy(str_buf, str, word_len);
-    SET_STRING_ELT(res, i, mkChar( (const char *)str_buf));
+    // TODO: allow for na.strings vector of all possible NA values
+    if(word_len == 3 && strncmp(str_buf, "NA", 2) == 0) {
+      SET_STRING_ELT(res, i, NA_STRING);
+    } else {
+      SET_STRING_ELT(res, i, mkChar( (const char *)str_buf));
+    }
   }
 
   UNPROTECT(1);
@@ -148,6 +153,7 @@ SEXP mmap_cstring_compare(SEXP compare_to, SEXP compare_how, SEXP mmap_obj, int 
   int *int_result = INTEGER(result);
   char *str;
   int cmp_len = length(compare_to);
+  int cmp_how = INTEGER(compare_how)[0];
   unsigned char * cmp_to_raw = RAW(compare_to);
   int chunk;
   int word_len;
@@ -156,23 +162,51 @@ SEXP mmap_cstring_compare(SEXP compare_to, SEXP compare_how, SEXP mmap_obj, int 
   for(chunk=0; chunk < cs->num_chunks; chunk++) {
     cumsum_offset = 0;
     for(ii=0; ii<cs->chunk_size; ii++, i++) {
-      if(i > LEN)
+      if(i >= LEN)
         break;
       word_len = cs->words[i];
       total_offset = cs->chunks[chunk] + cumsum_offset;
       cumsum_offset = cumsum_offset + cs->words[i];
-      if(word_len-1 != cmp_len)
-        continue;
-
-      str = (char *)(&(data[(long)total_offset]));
-      if(str[0] != cmp_to_raw[0])
-        continue;
-      if(memcmp(str, cmp_to_raw, word_len-1)==0) {
-        int_result[(*hits)++] = i+1;
+      if(cmp_how==1) { // ==
+        if(word_len-1 != cmp_len)
+          continue;
+        str = (char *)(&(data[(long)total_offset]));
+        if(str[0] != cmp_to_raw[0])
+          continue;
+        if(memcmp(str, cmp_to_raw, word_len-1)==0) {
+          int_result[(*hits)++] = i+1;
+        }
+      } else
+      if(cmp_how==2) { // !=
+        str = (char *)(&(data[(long)total_offset]));
+        if(str[0] == cmp_to_raw[0])
+          continue;
+        if(memcmp(str, cmp_to_raw, word_len-1)!=0) {
+          int_result[(*hits)++] = i+1;
+        }
+      } else
+      if(cmp_how==7) { // is.na  FIXME: this should use compare_to and cmp_len and memcmp
+        str = (char *)(&(data[(long)total_offset]));
+        if(word_len == 3 && strncmp(str, "NA", 2) == 0) {
+          int_result[(*hits)++] = i+1;
+        }
+      } else {
+        error("comparison not valid for characters");
       }
     }
   }
 
+  UNPROTECT(1);
+  return result;
+}
+
+SEXP mmap_cstring_isna(SEXP mmap_obj, SEXP any) {
+  int hits;
+  SEXP cmp_to;
+  PROTECT(cmp_to = allocVector(RAWSXP,1));
+  RAW(cmp_to)[0] = '\0';
+  SEXP result = mmap_cstring_compare(cmp_to, ScalarInteger(7), mmap_obj, &hits);
+  result = lengthgets(result, hits);
   UNPROTECT(1);
   return result;
 }

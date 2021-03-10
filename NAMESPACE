@@ -39,6 +39,7 @@ export(
        is.Ctype,
        nbytes,
 
+       is.na.mmap,
        dim.mmap, "dim<-.mmap",
        dimnames.mmap, "dimnames<-.mmap",
        is.array.mmap,
@@ -111,6 +112,7 @@ S3method(pad, Ctype)
 S3method(print, Ctype)
 S3method(as.list, Ctype)
 
+S3method(is.na, mmap)
 S3method(dim, mmap)
 S3method("dim<-", mmap)
 S3method(dimnames, mmap)
