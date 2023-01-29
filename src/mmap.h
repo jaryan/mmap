@@ -105,11 +105,11 @@ extern SEXP  nul_Symbol;
 #define MADV_UNMERGEABLE 13             /* KSM may not merge identical pages */
 #endif
 
-SEXP make_bitmask ();
+SEXP make_bitmask (void);
 SEXP mmap_mkFlags (SEXP _flags);
 SEXP mmap_munmap (SEXP mmap_obj);
 SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot, SEXP _flags, SEXP _len, SEXP _off, SEXP _pageoff, SEXP _endian);
-SEXP mmap_pagesize ();
+SEXP mmap_pagesize (void);
 SEXP mmap_is_mmapped (SEXP mmap_obj);
 SEXP mmap_msync (SEXP mmap_obj, SEXP _flags);
 SEXP mmap_madvise (SEXP mmap_obj, SEXP _len, SEXP _flags);
@@ -125,10 +125,10 @@ SEXP mmap_cstring_extract (SEXP mmap_obj, SEXP i);
 SEXP mmap_cstring_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj, int *hits);
 SEXP mmap_cstring_length (SEXP mmap_obj);
 SEXP mmap_cstring_isna (SEXP mmap_obj, SEXP any);
-SEXP mmap_cstring_maxwidth ();
+SEXP mmap_cstring_maxwidth (void);
 
 SEXP convert_ij_to_i (SEXP rows, SEXP i, SEXP j);
-SEXP sizeof_Ctypes ();
+SEXP sizeof_Ctypes (void);
 
 short mmap_rev_short(const short x, int len);
 int   mmap_rev_int(const int x, int len);

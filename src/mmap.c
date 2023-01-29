@@ -71,7 +71,7 @@ void create_bitmask (void){
   }
 }
 
-SEXP make_bitmask () {
+SEXP make_bitmask (void) {
   create_bitmask();
   return R_NilValue;
 } /*}}}*/
@@ -277,13 +277,13 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
 
 /* mmap_pagesize {{{ */
 #ifdef WIN32
-SEXP mmap_pagesize () {
+SEXP mmap_pagesize (void) {
   SYSTEM_INFO sSysInfo;
   GetSystemInfo(&sSysInfo);
   return ScalarInteger((int)sSysInfo.dwPageSize);
 }
 #else
-SEXP mmap_pagesize () {
+SEXP mmap_pagesize (void) {
   return ScalarInteger((int)sysconf(_SC_PAGE_SIZE));
 }
 #endif
@@ -304,7 +304,7 @@ SEXP mmap_msync (SEXP mmap_obj, SEXP _flags) {
   char *data;
   data = MMAP_DATA(mmap_obj);
   FlushViewOfFile((void *)data, (size_t)MMAP_SIZE(mmap_obj));
-  return 0;
+  return ScalarInteger(0);
 }
 #else
 SEXP mmap_msync (SEXP mmap_obj, SEXP _flags) {
@@ -1255,10 +1255,11 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
   int mode = MMAP_MODE(mmap_obj); 
   int Cbytes = MMAP_CBYTES(mmap_obj);
   int isSigned = MMAP_SIGNED(mmap_obj);
+  int P = 0;
 
   SEXP result;
   LEN = (long)MMAP_LENGTH(mmap_obj);
-  PROTECT(result = allocVector(INTSXP, LEN));
+  PROTECT(result = allocVector(INTSXP, LEN)); P++;
   int *int_result = INTEGER(result);
 
   /* comp_how
@@ -1967,7 +1968,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     //if(isNull(getAttrib(MMAP_SMODE(mmap_obj),install("nul")))) {
     if(hasnul) {
       if( Cbytes == NA_INTEGER ) {
-        result = mmap_cstring_compare(compare_to, compare_how, mmap_obj, &hits); 
+        PROTECT(result = mmap_cstring_compare(compare_to, compare_how, mmap_obj, &hits)); P++;
       } else {  // fixed-width
         for(i=0; i < LEN; i++) {
           str = &(data[i*Cbytes]);
@@ -1995,7 +1996,7 @@ SEXP mmap_compare (SEXP compare_to, SEXP compare_how, SEXP mmap_obj) {
     break;
   }
   result = lengthgets(result, hits);
-  UNPROTECT(1);
+  UNPROTECT(P);
   return result;
   return ScalarInteger(hits);
 }/*}}}*/

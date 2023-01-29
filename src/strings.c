@@ -80,12 +80,12 @@ SEXP mmap_cstring_create (SEXP mmap_obj, SEXP _chunk_size) {
   CS->num_words = num_words;
   CS->chunk_size = chunk_size;
 
-  CStringData = R_MakeExternalPtr(CS, R_NilValue, R_NilValue);
+  PROTECT(CStringData = R_MakeExternalPtr(CS, R_NilValue, R_NilValue));
   SEXP className;
   PROTECT(className = allocVector(STRSXP,1));
   SET_STRING_ELT(className, 0, mkChar("cstring"));
   setAttrib(CStringData, R_ClassSymbol, className);
-  UNPROTECT(1);
+  UNPROTECT(2);
   return CStringData;
 
 }
@@ -202,12 +202,16 @@ SEXP mmap_cstring_compare(SEXP compare_to, SEXP compare_how, SEXP mmap_obj, int 
 
 SEXP mmap_cstring_isna(SEXP mmap_obj, SEXP any) {
   int hits;
+  int P = 0;
   SEXP cmp_to;
-  PROTECT(cmp_to = allocVector(RAWSXP,1));
+  PROTECT(cmp_to = allocVector(RAWSXP,1)); P++;
   RAW(cmp_to)[0] = '\0';
-  SEXP result = mmap_cstring_compare(cmp_to, ScalarInteger(7), mmap_obj, &hits);
+  SEXP seven = ScalarInteger(7);
+  PROTECT(seven); P++;
+  SEXP result = mmap_cstring_compare(cmp_to, seven, mmap_obj, &hits);
+  PROTECT(result); P++;
   result = lengthgets(result, hits);
-  UNPROTECT(1);
+  UNPROTECT(P);
   return result;
 }
 
