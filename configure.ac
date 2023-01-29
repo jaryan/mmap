@@ -1,4 +1,18 @@
-AC_INIT(mmap, 0.6-21)
+AC_INIT([mmap], [0.6-21])
+
+AC_CONFIG_AUX_DIR([tools])
+
+
+: ${R_HOME=`R RHOME`}
+if test -z "${R_HOME}"; then
+  echo "could not determine R_HOME"
+  exit 1
+fi
+
+CC=`"${R_HOME}/bin/R" CMD config CC`
+if test -z "${CC}"; then
+    AC_MSG_ERROR([No C compiler available])
+fi
 
 AC_CONFIG_HEADERS([src/config.h])
 AC_FUNC_MMAP

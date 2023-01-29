@@ -1,7 +1,7 @@
 #include <R.h>
 #include <Rinternals.h>
 
-SEXP sizeof_Ctypes () {
+SEXP sizeof_Ctypes (void) {
   SEXP Ctypes;
   PROTECT(Ctypes = allocVector(VECSXP,7));
 
@@ -28,6 +28,6 @@ SEXP sizeof_Ctypes () {
   return Ctypes;
 }
 
-SEXP mmap_cstring_maxwidth() {
+SEXP mmap_cstring_maxwidth(void) {
     return ScalarInteger(USHRT_MAX - 1);
 }
