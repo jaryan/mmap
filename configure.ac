@@ -1,7 +1,6 @@
-AC_INIT(mmap, 0.6-18)
+AC_INIT(mmap, 0.6-21)
 
 AC_CONFIG_HEADERS([src/config.h])
-AC_PROG_CC
 AC_FUNC_MMAP
 AC_CHECK_ALIGNOF(char)
 AC_CHECK_ALIGNOF(int)
