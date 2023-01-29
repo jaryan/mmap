@@ -127,7 +127,7 @@ information related to number of bytes and whether
 the vitrual type is signed is also contained.
 }
 \references{
-\url{http://en.wikipedia.org/wiki/C_variable_types_and_declarations}
+\url{https://en.wikipedia.org/wiki/C_variable_types_and_declarations}
 \url{https://cran.r-project.org/doc/manuals/R-exts.html}
 }
 \author{

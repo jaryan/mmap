@@ -95,8 +95,8 @@ It is important to note that this alignment is also dependent on the underlying
 hardware word size (size_t) and is more complicated than the above example.
 }
 \references{
-\url{http://en.wikipedia.org/wiki/Struct_(C_programming_language)}
-\url{http://en.wikipedia.org/wiki/Data_structure_alignment}
+\url{https://en.wikipedia.org/wiki/Struct_(C_programming_language)}
+\url{https://en.wikipedia.org/wiki/Data_structure_alignment}
 }
 \author{
 Jeffrey A. Ryan
