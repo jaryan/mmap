@@ -98,6 +98,7 @@ S3method(as.uint8, mmap)
 S3method(as.int16, mmap)
 S3method(as.uint16, mmap)
 S3method(as.int24, mmap)
+S3method(as.cstring, mmap)
 
 S3method(nbytes, Ctype)
 S3method(nbytes, mmap)

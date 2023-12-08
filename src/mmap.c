@@ -483,7 +483,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
               if( ival == 0 ) {
                 continue;
               }
-              error("'i=%i' out of bounds", index_p[i]);
+              error("'i=%0.0f' out of bounds", index_p[i]);
             }
             int_dat[i] = (int)(char)(data[((long)index_p[i]-1)]);
           }
@@ -494,7 +494,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
               if( ival == 0 ) {
                 continue;
               }
-              error("'i=%i' out of bounds", index_p[i]);
+              error("'i=%0.0f' out of bounds", index_p[i]);
              }
             int_dat[i] = (int)(unsigned char)(data[((long)index_p[i]-1)]);
           }
@@ -511,7 +511,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             if( ival == 0 ) {
               continue;
             }
-            error("'i=%i' out of bounds", index_p[i]);
+            error("'i=%0.0f' out of bounds", index_p[i]);
           }
           memcpy(&sbuf, 
                  &(data[((long)index_p[i]-1)*sizeof(short)]),
@@ -527,7 +527,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             if( ival == 0 ) {
               continue;
             }
-            error("'i=%i' out of bounds", index_p[i]);
+            error("'i=%0.0f' out of bounds", index_p[i]);
           }
           memcpy(&sbuf,
                  &(data[((long)index_p[i]-1)*sizeof(short)]),
@@ -546,7 +546,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             if( ival == 0 ) {
               continue;
             }
-            error("'i=%i' out of bounds", index_p[i]);
+            error("'i=%0.0f' out of bounds", index_p[i]);
           }
           intbuf = 0;
           memcpy(&intbuf, 
@@ -568,7 +568,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             if( ival == 0 ) {
               continue;
             }
-            error("'i=%i' out of bounds", index_p[i]);
+            error("'i=%0.0f' out of bounds", index_p[i]);
           }
           intbuf = 0;
           memcpy(&intbuf, 
@@ -585,7 +585,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
             if( ival == 0 ) {
               continue;
             }
-            error("'i=%i' out of bounds", index_p[i]);
+            error("'i=%0.0f' out of bounds", index_p[i]);
           }
           memcpy(&intbuf, 
                  &(data[((long)index_p[i]-1)*sizeof(int)]),
@@ -608,7 +608,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
         for(i=0;  i < LEN; i++) {
           ival = ((long)index_p[i]-1);
           if( ival > upper_bound || ival < 0 )
-            error("'i=%i' out of bounds", index_p[i]);
+            error("'i=%0.0f' out of bounds", index_p[i]);
           memcpy(&floatbuf, 
                  &(data[((long)index_p[i]-1)*sizeof(float)]), 
                  sizeof(char)*sizeof(float));
@@ -625,7 +625,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
           for(i=0;  i < LEN; i++) {
             ival = ((long)index_p[i]-1);
             if( ival > upper_bound || ival < 0 )
-              error("'i=%i' out of bounds", (long)index_p[i]);
+              error("'i=%ld' out of bounds", (long)index_p[i]);
             memcpy(&longbuf, 
                    &(data[((long)index_p[i]-1)*sizeof(long)]), 
                    sizeof(char)*sizeof(long));
@@ -637,7 +637,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
         for(i=0;  i < LEN; i++) {
           ival = ((long)index_p[i]-1);
           if( ival > upper_bound || ival < 0 )
-            error("'i=%i' out of bounds", index_p[i]);
+            error("'i=%0.0f' out of bounds", index_p[i]);
           memcpy(&realbuf, 
                  &(data[((long)index_p[i]-1)*sizeof(double)]), 
                  sizeof(char)*sizeof(double));
@@ -658,7 +658,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
     for(i=0;  i < LEN; i++) {
       ival = ((long)index_p[i]-1);
       if( ival > upper_bound || ival < 0 )
-        error("'i=%i' out of bounds", index_p[i]);
+        error("'i=%0.0f' out of bounds", index_p[i]);
       memcpy(&Rcomplexbuf, 
              &(data[((long)index_p[i]-1)*sizeof(Rcomplex)]), 
              sizeof(char)*sizeof(Rcomplex));
@@ -704,7 +704,7 @@ SEXP mmap_extract (SEXP index, SEXP field, SEXP dim, SEXP mmap_obj) {
     for(i=0;  i < LEN; i++) {
       ival =  ((long)index_p[i]-1);
       if( ival > upper_bound || ival < 0 )
-        error("'i=%i' out of bounds", index_p[i]);
+        error("'i=%0.0f' out of bounds", index_p[i]);
       raw_dat[i] = data[((long)index_p[i]-1)];
     }
     break; /* }}} */
@@ -978,7 +978,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
         for(i=0; i < LEN; i++) {
           ival = ((long)index_p[i]-1)*sizeof(char);
           if( ival > upper_bound || ival < 0 )
-            error("'i=%i' out of bounds", (long)index_p[i]);
+            error("'i=%ld' out of bounds", (long)index_p[i]);
           char_value = (unsigned char)(lgl_value[i]);
           memcpy(&(data[((long)index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
         }
@@ -987,7 +987,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
         for(i=0; i < LEN; i++) {
           ival = ((long)index_p[i]-1)*sizeof(int);
           if( ival > upper_bound || ival < 0 )
-            error("'i=%i' out of bounds", index_p[i]);
+            error("'i=%0.0f' out of bounds", index_p[i]);
           /* endianess issues are here -- FIXME */
           memcpy(&(data[((long)index_p[i]-1)*sizeof(int)]), &(lgl_value[i]), sizeof(int));
         }
@@ -1006,7 +1006,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
         for(i=0;  i < LEN; i++) {
           ival = ((long)index_p[i]-1)*sizeof(char);
           if( ival > upper_bound || ival < 0 )
-            error("'i=%i' out of bounds", (long)index_p[i]);
+            error("'i=%ld' out of bounds", (long)index_p[i]);
           char_value = (unsigned char)(int_value[i]); 
           memcpy(&(data[((long)index_p[i]-1)*sizeof(char)]), &(char_value), sizeof(char));
         }
@@ -1015,7 +1015,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
         for(i=0;  i < LEN; i++) {
           ival = ((long)index_p[i]-1)*sizeof(short);
           if( ival > upper_bound || ival < 0 )
-            error("'i=%i' out of bounds", index_p[i]);
+            error("'i=%0.0f' out of bounds", index_p[i]);
           short_value = (unsigned short)(int_value[i]); 
           memcpy(&(data[((long)index_p[i]-1)*sizeof(short)]), &(short_value), sizeof(short));
         }
@@ -1024,7 +1024,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
       for(i=0;  i < LEN; i++) {
         ival = ((long)index_p[i]-1)*3;
         if( ival > upper_bound || ival < 0 )
-          error("'i=%i' out of bounds", index_p[i]);
+          error("'i=%0.0f' out of bounds", index_p[i]);
         memcpy(&(data[((long)index_p[i]-1)*3]), &(int_value[i]), 3);
       }
       break;
@@ -1032,7 +1032,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
         for(i=0;  i < LEN; i++) {
           ival = ((long)index_p[i]-1)*sizeof(int);
           if( ival > upper_bound || ival < 0 )
-            error("'i=%i' out of bounds", index_p[i]);
+            error("'i=%0.0f' out of bounds", index_p[i]);
           memcpy(&(data[((long)index_p[i]-1)*sizeof(int)]), &(int_value[i]), sizeof(int));
         }
         break;
@@ -1046,7 +1046,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
       for(i=0;  i < LEN; i++) {
         ival =  ((long)index_p[i]-1)*sizeof(float);
         if( ival > upper_bound || ival < 0 )
-          error("'i=%i' out of bounds", i);
+          error("'i=%ld' out of bounds", i);
         float_value = (float)(real_value[i]);
         memcpy(&(data[((long)index_p[i]-1)*sizeof(float)]), &(float_value), sizeof(float));
       }
@@ -1056,7 +1056,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
       for(i=0;  i < LEN; i++) {
         ival =  ((long)index_p[i]-1)*sizeof(double);
         if( ival > upper_bound || ival < 0 )
-          error("'i=%i' out of bounds", i);
+          error("'i=%ld' out of bounds", i);
         long_value = (long)(real_value[i]);
         memcpy(&(data[((long)index_p[i]-1)*sizeof(long)]), &(long_value), sizeof(long));
       }
@@ -1064,7 +1064,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
       for(i=0;  i < LEN; i++) {
         ival =  ((long)index_p[i]-1)*sizeof(double);
         if( ival > upper_bound || ival < 0 )
-          error("'i=%i' out of bounds", i);
+          error("'i=%ld' out of bounds", i);
         memcpy(&(data[((long)index_p[i]-1)*sizeof(double)]), &(real_value[i]), sizeof(double));
       }
       }
@@ -1095,7 +1095,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
               /*
               ival = (index_p[i]-1)*sizeof(char);
               if( ival > upper_bound || ival < 0 )
-                error("'i=%i' out of bounds", index_p[i]);
+                error("'i=%0.0f' out of bounds", index_p[i]);
               */
               char_value = (unsigned char)(int_value[i]); 
               memcpy(&(data[((long)index_p[i]-1)*Cbytes+offset]), 
@@ -1164,7 +1164,7 @@ SEXP mmap_replace (SEXP index, SEXP field, SEXP value, SEXP mmap_obj) {
               /*
               ival = (index_p[i]-1)*sizeof(char);
               if( ival > upper_bound || ival < 0 )
-                error("'i=%i' out of bounds", index_p[i]);
+                error("'i=%0.0f' out of bounds", index_p[i]);
               */
             char_value = (unsigned char)(byte_value[i]); 
             memcpy(&(data[((long)index_p[i]-1)*Cbytes+offset]), 
