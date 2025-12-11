@@ -14,10 +14,12 @@ jobs:
     strategy:
       matrix:
         include:
-          - {os: macOS-latest}
-          - {os: ubuntu-latest}
+          - { name: macos,     os: macos-latest }
+          - { name: ubuntu,    os: ubuntu-latest }
+          - { name: r-devel,   os: ubuntu-latest, container: rocker/drd }
 
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
 
     steps:
       - uses: actions/checkout@v6
