@@ -214,7 +214,6 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
 
   SEXP mmap_obj;
   PROTECT(mmap_obj = R_NewEnv(R_NilValue, FALSE, 0));
-  SET_ATTRIB(mmap_obj, R_NilValue);
   defineVar(mmap_dataSymbol, R_MakeExternalPtr(data, R_NilValue, R_NilValue),mmap_obj);
   //defineVar(install("bytes"), ScalarReal(asReal(_len)-asInteger(_off)-asInteger(_pageoff)),mmap_obj);
   defineVar(mmap_bytesSymbol, _len,mmap_obj);
@@ -253,7 +252,6 @@ SEXP mmap_mmap (SEXP _type, SEXP _fildesc, SEXP _prot,
   
   SEXP mmap_obj;
   PROTECT(mmap_obj = R_NewEnv(R_NilValue, FALSE, 0));
-  SET_ATTRIB(mmap_obj, R_NilValue);
   defineVar(mmap_dataSymbol, R_MakeExternalPtr(data, R_NilValue, R_NilValue),mmap_obj);
   //defineVar(install("bytes"), ScalarReal(asReal(_len)-asInteger(_off)-asInteger(_pageoff)),mmap_obj);
   defineVar(mmap_bytesSymbol, _len,mmap_obj);
