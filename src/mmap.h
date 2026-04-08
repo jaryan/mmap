@@ -1,4 +1,5 @@
 #include <R.h>
+#include <Rversion.h>
 #include <Rinternals.h>
 
 
@@ -23,6 +24,33 @@ extern SEXP  nul_Symbol;
   new access macros for environment mmap_obj to facilitate finalizer
 */
 
+#if R_VERSION >= R_Version(4, 5, 0)
+
+#define MMAP_DATA(mmap_object)        R_ExternalPtrAddr(R_getVar(mmap_dataSymbol,mmap_object))
+#define MMAP_SIZE(mmap_object)        (long)REAL(R_getVar(mmap_bytesSymbol,mmap_object))[0]
+#define MMAP_LENGTH(mmap_object)      (long)REAL(R_getVar(mmap_lengthSymbol,mmap_object))[0]
+#define MMAP_FD(mmap_object)          INTEGER(R_getVar(mmap_filedescSymbol,mmap_object))[0]
+#define MMAP_MODE(mmap_object)        TYPEOF(R_getVar(mmap_storageModeSymbol,mmap_object))
+#define MMAP_SMODE(mmap_object)       R_getVar(mmap_storageModeSymbol,mmap_object)
+#define MMAP_CTYPE(mmap_object)       CHAR(STRING_ELT(getAttrib(R_getVar(mmap_storageModeSymbol, \
+                                        mmap_object), R_ClassSymbol),1))
+#define MMAP_CBYTES(mmap_object)      INTEGER(getAttrib(R_getVar(mmap_storageModeSymbol, \
+                                        mmap_object),mmap_bytesSymbol))[0]
+#define MMAP_SIGNED(mmap_object)      INTEGER(getAttrib(R_getVar(mmap_storageModeSymbol, \
+                                        mmap_object),mmap_signedSymbol))[0]
+#define MMAP_OFFSET(mmap_object,i)    INTEGER(getAttrib(R_getVar(mmap_storageModeSymbol, \
+                                        mmap_object),mmap_offsetSymbol))[i]
+#define MMAP_PAGESIZE(mmap_object)    INTEGER(R_getVar(mmap_pagesizeSymbol,mmap_object))[0]
+#define MMAP_DIM(mmap_object)         R_getVar(mmap_dimSymbol,mmap_object)
+#define MMAP_CSTRING(mmap_object)     R_getVar(mmap_cstringSymbol,mmap_object)
+#define MMAP_PROT(mmap_object)        R_getVar(mmap_protSymbol,mmap_object)
+#define MMAP_ENDIAN(mmap_object)      INTEGER(R_getVar(mmap_endianSymbol,mmap_object))[0]
+#define MMAP_FLAGS(mmap_object)       R_getVar(mmap_flagsSymbol,mmap_object)
+#define MMAP_SYNC(mmap_object)        INTEGER(VECTOR_ELT(mmap_object,4))[0]
+#define MMAP_CLEARPTR(mmap_object)    R_ClearExternalPtr(R_getVar(mmap_dataSymbol,mmap_object));
+
+#else
+
 #define MMAP_DATA(mmap_object)        R_ExternalPtrAddr(findVar(mmap_dataSymbol,mmap_object))
 #define MMAP_SIZE(mmap_object)        (long)REAL(findVar(mmap_bytesSymbol,mmap_object))[0]
 #define MMAP_LENGTH(mmap_object)      (long)REAL(findVar(mmap_lengthSymbol,mmap_object))[0]
@@ -44,6 +72,9 @@ extern SEXP  nul_Symbol;
 #define MMAP_ENDIAN(mmap_object)      INTEGER(findVar(mmap_endianSymbol,mmap_object))[0]
 #define MMAP_FLAGS(mmap_object)       findVar(mmap_flagsSymbol,mmap_object)
 #define MMAP_SYNC(mmap_object)        INTEGER(VECTOR_ELT(mmap_object,4))[0]
+#define MMAP_CLEARPTR(mmap_object)    R_ClearExternalPtr(findVar(mmap_dataSymbol,mmap_object));
+
+#endif
 
 /*
 #define MMAP_DATA(mmap_object)        R_ExternalPtrAddr(VECTOR_ELT(mmap_object,0))

@@ -1,6 +1,8 @@
 \name{struct}
 \alias{struct}
 \alias{pad}
+\alias{pad.Ctype}
+\alias{pad.default}
 \alias{as.struct}
 \alias{is.struct}
 \alias{as.list.Ctype}
@@ -15,6 +17,10 @@ in R for use with on-disk C struct's.
 \usage{
 struct(..., bytes, offset)
 
+pad(...)
+\method{pad}{default}(length=0, ...)
+\method{pad}{Ctype}(ctype, ...)
+
 is.struct(x)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -27,6 +33,12 @@ The total number of bytes in the struct. See details.
 }
   \item{offset}{
 The byte offset of members of the struct. See details.
+}
+  \item{length}{
+length of bytes to pad
+}
+  \item{ctype}{
+\code{Ctype} object to use as fixed width for padding
 }
   \item{x}{
 object to test 
@@ -85,6 +97,9 @@ be necessary to correct the offset to reflect the internal padding. Here,
 the correct setting would be \code{offset=c(0,8,16)} - since the 4-byte
 integer will be padded to 8-bytes to allow for the final double to
 begin on a word boundary (on a 64 bit platform).
+
+It is also possible to add padding using \code{pad} within a struct to \sQuote{skip} a 
+field of known length, instead of using the \code{offset} argument.
 
 This is a general mechanism to adjust for offset - but requires knowledge
 of both the struct on disk as well as the generating process. At some point

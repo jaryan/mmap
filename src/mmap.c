@@ -1,4 +1,5 @@
 #include <R.h>
+#include <Rversion.h>
 #include <Rinternals.h>
 #include <string.h>
 #include <unistd.h>
@@ -163,7 +164,7 @@ SEXP mmap_munmap (SEXP mmap_obj) {
   ret = UnmapViewOfFile(data);
   CloseHandle(mh);
   CloseHandle(fd);
-  R_ClearExternalPtr(findVar(mmap_dataSymbol,mmap_obj));
+  MMAP_CLEARPTR(mmap_obj);
   return(ScalarInteger(ret));
 }
 #else
@@ -176,9 +177,8 @@ SEXP mmap_munmap (SEXP mmap_obj) {
 
   int ret = munmap(data, MMAP_SIZE(mmap_obj));
   close(fd); /* should be moved back to R */
-  //R_ClearExternalPtr(VECTOR_ELT(mmap_obj,0));
-  R_ClearExternalPtr(findVar(mmap_dataSymbol,mmap_obj));
-  /*R_ClearExternalPtr(MMAP_DATA(mmap_obj));*/
+  //R_ClearExternalPtr(findVar(mmap_dataSymbol,mmap_obj));
+  MMAP_CLEARPTR(mmap_obj);
   return(ScalarInteger(ret)); 
 } /*}}}*/
 

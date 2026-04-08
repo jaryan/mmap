@@ -1,8 +1,8 @@
 Package: mmap
 Type: Package
 Title: Map Pages of Memory
-Version: 0.6-24
-Date: 2026-01-30
+Version: 0.6-25
+Date: 2026-04-08
 Depends: R (>= 4.1.0)
 Authors@R: person(given = c("Jeffrey", "A."), family = "Ryan", role = c("aut", "cre"), email = "jeff.a.ryan@gmail.com", comment=c(ORCID="0009-0003-3627-7896"))
 LazyLoad: yes
