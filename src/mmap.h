@@ -95,7 +95,7 @@ extern SEXP  nul_Symbol;
 #ifdef WIN32
 /*#define MMAP_HANDLE(mmap_object)      INTEGER(VECTOR_ELT(mmap_object,5))[0]*/
 #if R_VERSION >= R_Version(4, 5, 0)
-#define MMAP_HANDLE(mmap_object)      INTEGER(R_getVar(mmap_handleSymbol,mmap_object))[0]
+#define MMAP_HANDLE(mmap_object)      INTEGER(R_getVar(mmap_handleSymbol,mmap_object,false))[0]
 #else
 #define MMAP_HANDLE(mmap_object)      INTEGER(findVar(mmap_handleSymbol,mmap_object))[0]
 #endif
