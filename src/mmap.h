@@ -94,7 +94,12 @@ extern SEXP  nul_Symbol;
 
 #ifdef WIN32
 /*#define MMAP_HANDLE(mmap_object)      INTEGER(VECTOR_ELT(mmap_object,5))[0]*/
+#if R_VERSION >= R_Version(4, 5, 0)
+#define MMAP_HANDLE(mmap_object)      INTEGER(R_getVar(mmap_handleSymbol,mmap_object))[0]
+#else
 #define MMAP_HANDLE(mmap_object)      INTEGER(findVar(mmap_handleSymbol,mmap_object))[0]
+#endif
+
 /* Definitions from the Linux kernel source 2.6.35.7 */
 #define PROT_READ       0x1             /* page can be read */
 #define PROT_WRITE      0x2             /* page can be written */
